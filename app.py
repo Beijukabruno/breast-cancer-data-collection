@@ -390,9 +390,9 @@ def render_dynamic_medications(cycle_num: int) -> List[Dict]:
     return medications
 
 
-def render_cycle_1_form(patient_id: str) -> Dict:
-    """Render Chemotherapy Treatment Cycle 1 form"""
-    st.header("Chemotherapy Treatment Cycle 1")
+def render_cycle_form(patient_id: str, cycle_number: int) -> Dict:
+    """Render Chemotherapy Treatment Cycle form for any cycle number"""
+    st.header(f"Chemotherapy Treatment Cycle {cycle_number}")
     st.markdown("---")
     
     # Prescribed regimen for this cycle
@@ -400,7 +400,7 @@ def render_cycle_1_form(patient_id: str) -> Dict:
     regimen_prescribed = st.selectbox(
         "Prescribed regimen for this cycle:",
         regimen_options,
-        key="cycle1_regimen_prescribed",
+        key=f"cycle{cycle_number}_regimen_prescribed",
         index=None,
         help="Select the chemotherapy regimen prescribed for this treatment cycle"
     )
@@ -411,11 +411,11 @@ def render_cycle_1_form(patient_id: str) -> Dict:
         value=date(2017, 7, 1),
         min_value=Config.STUDY_START_DATE,
         max_value=Config.STUDY_END_DATE,
-        key="cycle1_prescription_date"
+        key=f"cycle{cycle_number}_prescription_date"
     )
     
     # Dynamic medications
-    medications = render_dynamic_medications(1)
+    medications = render_dynamic_medications(cycle_number)
     
     # Date chemotherapy received
     chemo_received_date = st.date_input(
@@ -423,7 +423,7 @@ def render_cycle_1_form(patient_id: str) -> Dict:
         value=date(2017, 7, 1),
         min_value=Config.STUDY_START_DATE,
         max_value=Config.STUDY_END_DATE,
-        key="cycle1_chemo_received_date"
+        key=f"cycle{cycle_number}_chemo_received_date"
     )
     
     # Laboratory values
@@ -436,7 +436,7 @@ def render_cycle_1_form(patient_id: str) -> Dict:
             min_value=0.0,
             max_value=50000.0,
             step=100.0,
-            key="cycle1_wbc",
+            key=f"cycle{cycle_number}_wbc",
             help="White Blood Cell count"
         )
     
@@ -446,7 +446,7 @@ def render_cycle_1_form(patient_id: str) -> Dict:
             min_value=0.0,
             max_value=25.0,
             step=0.1,
-            key="cycle1_hemoglobin",
+            key=f"cycle{cycle_number}_hemoglobin",
             help="Hemoglobin level (g/dL)"
         )
     
@@ -456,7 +456,7 @@ def render_cycle_1_form(patient_id: str) -> Dict:
             min_value=0,
             max_value=1000000,
             step=1000,
-            key="cycle1_platelets",
+            key=f"cycle{cycle_number}_platelets",
             help="Platelet count"
         )
     
@@ -465,7 +465,7 @@ def render_cycle_1_form(patient_id: str) -> Dict:
     chemo_on_prescription_day = st.radio(
         "Select option:",
         ["Yes", "No"],
-        key="cycle1_chemo_on_prescription_day",
+        key=f"cycle{cycle_number}_chemo_on_prescription_day",
         horizontal=True,
         label_visibility="collapsed",
         index=None
@@ -476,7 +476,7 @@ def render_cycle_1_form(patient_id: str) -> Dict:
     if chemo_on_prescription_day == "No":
         chemo_delay_reason = st.text_input(
             "If No, Why?:",
-            key="cycle1_chemo_delay_reason",
+            key=f"cycle{cycle_number}_chemo_delay_reason",
             placeholder="Please specify reason..."
         )
     
@@ -485,7 +485,7 @@ def render_cycle_1_form(patient_id: str) -> Dict:
     side_effects_present = st.radio(
         "Are there documented side effects?",
         ["Yes", "No"],
-        key="cycle1_side_effects_present",
+        key=f"cycle{cycle_number}_side_effects_present",
         horizontal=True,
         index=None
     )
@@ -498,26 +498,26 @@ def render_cycle_1_form(patient_id: str) -> Dict:
         col1, col2, col3, col4, col5, col6 = st.columns(6)
         
         with col1:
-            if st.checkbox("Nausea", key="cycle1_nausea"):
+            if st.checkbox("Nausea", key=f"cycle{cycle_number}_nausea"):
                 side_effects.append("Nausea")
         with col2:
-            if st.checkbox("Fatigue", key="cycle1_fatigue"):
+            if st.checkbox("Fatigue", key=f"cycle{cycle_number}_fatigue"):
                 side_effects.append("Fatigue")
         with col3:
-            if st.checkbox("Vomiting", key="cycle1_vomiting"):
+            if st.checkbox("Vomiting", key=f"cycle{cycle_number}_vomiting"):
                 side_effects.append("Vomiting")
         with col4:
-            if st.checkbox("Neuropathy", key="cycle1_neuropathy"):
+            if st.checkbox("Neuropathy", key=f"cycle{cycle_number}_neuropathy"):
                 side_effects.append("Neuropathy")
         with col5:
-            if st.checkbox("None", key="cycle1_none_side_effects"):
+            if st.checkbox("None", key=f"cycle{cycle_number}_none_side_effects"):
                 side_effects.append("None")
         with col6:
-            if st.checkbox("Other", key="cycle1_other_side_effects"):
+            if st.checkbox("Other", key=f"cycle{cycle_number}_other_side_effects"):
                 side_effects.append("Other")
                 side_effects_other = st.text_input(
                     "Specify other side effects:",
-                    key="cycle1_side_effects_other",
+                    key=f"cycle{cycle_number}_side_effects_other",
                     placeholder="Please specify..."
                 )
     
@@ -526,7 +526,7 @@ def render_cycle_1_form(patient_id: str) -> Dict:
     patient_condition = st.radio(
         "Select condition:",
         Config.CONDITION_OPTIONS,
-        key="cycle1_patient_condition",
+        key=f"cycle{cycle_number}_patient_condition",
         horizontal=True,
         label_visibility="collapsed",
         index=None
@@ -537,7 +537,7 @@ def render_cycle_1_form(patient_id: str) -> Dict:
     if patient_condition == "Other":
         condition_other = st.text_input(
             "Specify other condition:",
-            key="cycle1_condition_other",
+            key=f"cycle{cycle_number}_condition_other",
             placeholder="Please specify..."
         )
     
@@ -546,7 +546,7 @@ def render_cycle_1_form(patient_id: str) -> Dict:
     hospitalization = st.radio(
         "Select option:",
         ["Yes", "No"],
-        key="cycle1_hospitalization",
+        key=f"cycle{cycle_number}_hospitalization",
         horizontal=True,
         label_visibility="collapsed",
         index=None
@@ -557,13 +557,13 @@ def render_cycle_1_form(patient_id: str) -> Dict:
     if hospitalization == "Yes":
         hospitalization_reason = st.text_input(
             "If yes, specify the reason:",
-            key="cycle1_hospitalization_reason",
+            key=f"cycle{cycle_number}_hospitalization_reason",
             placeholder="Please specify reason..."
         )
     
     # Return cycle data
     return {
-        "cycle_number": 1,
+        "cycle_number": cycle_number,
         "patient_id": patient_id,
         "regimen_prescribed": regimen_prescribed if regimen_prescribed and not regimen_prescribed.startswith("-- Select") else None,
         "prescription_date": prescription_date.strftime("%Y-%m-%d"),
@@ -1056,10 +1056,8 @@ def main():
         
         # Show cycle form if current_cycle is set
         if st.session_state.current_cycle > 0:
-            if st.session_state.current_cycle == 1:
-                cycle_data = render_cycle_1_form(st.session_state.current_patient_id)
-                render_cycle_actions(cycle_data, 1)
-            # TODO: Add cycle 2+ forms here
+            cycle_data = render_cycle_form(st.session_state.current_patient_id, st.session_state.current_cycle)
+            render_cycle_actions(cycle_data, st.session_state.current_cycle)
     
     # Footer
     render_footer()
