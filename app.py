@@ -7,6 +7,15 @@ association with recurrence-free survival among breast cancer patients at UCI.
 Study Period: 2016 - 2018
 Author: Data Collection Team
 Date: October 2025
+
+title: Breast Cancer Data Collection Tool
+emoji: 🎗️
+colorFrom: pink
+colorTo: purple
+sdk: streamlit
+sdk_version: 1.28.0
+app_file: app.py
+pinned: false
 """
 
 import streamlit as st
@@ -49,7 +58,7 @@ class Config:
         "Invasive lobular carcinoma",
         "Other"
     ]
-    STAGE_OPTIONS = ["Stage I", "Stage II", "Stage III", "Stage IV"]
+    STAGE_OPTIONS = ["Stage 0", "Stage I", "Stage II", "Stage III", "Stage IV"]
     
     # Predefined medication options
     MEDICATION_OPTIONS = [
@@ -77,6 +86,16 @@ class Config:
         "Ifosfamide",
         "Mesra",
         "Promethazine"
+    ]
+    
+    IMMUNOHISTO_OPTIONS = [
+        "ER-positive (ER+)",
+        "PR-positive (PR+)", 
+        "HR-positive (HR+)",
+        "HR-negative (HR-)",
+        "HER2-positive (HER2+)",
+        "ER-negative (ER-)",
+        "HER2-negative (HER2-)"
     ]
     
     REGIMEN_OPTIONS = [
@@ -132,7 +151,7 @@ def initialize_session_state() -> None:
 def clear_form_fields() -> None:
     """Clear all form input fields"""
     # Clear text inputs
-    for key in ['patient_id', 'income_other', 'immunohisto_specify', 'commodities_other', 'treatment_not_started_reason']:
+    for key in ['patient_id', 'income_other', 'immunohisto_other_specify', 'commodities_other', 'treatment_not_started_reason']:
         if key in st.session_state:
             del st.session_state[key]
     
@@ -152,7 +171,10 @@ def clear_form_fields() -> None:
             del st.session_state[key]
     
     # Clear checkboxes
-    for key in ['diabetes', 'hypertension', 'hiv', 'none_captured', 'other_comorbidities']:
+    checkbox_keys = ['diabetes', 'hypertension', 'hiv', 'none_captured', 'other_comorbidities',
+                    'er_positive', 'er_negative', 'pr_positive', 'hr_positive', 'hr_negative', 
+                    'her2_positive', 'her2_negative', 'immunohisto_other_check']
+    for key in checkbox_keys:
         if key in st.session_state:
             del st.session_state[key]
     
@@ -695,15 +717,43 @@ def render_linear_baseline_form(districts: List[str]) -> Dict:
         index=None  # No default selection
     )
     
-    # Conditional input for immunohistochemistry specification
-    immunohisto_specify = ""
+    # Conditional multiselect for immunohistochemistry results
+    immunohisto_results = []
+    immunohisto_other = ""
     if immunohisto_present == "Yes":
-        immunohisto_specify = st.text_area(
-            "If yes, specify:",
-            key="immunohisto_specify",
-            height=100,
-            placeholder="Please provide details..."
-        )
+        st.markdown("**Select immunohistochemistry results (you can select multiple):**")
+        
+        # Create checkboxes in a grid layout
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            if st.checkbox("ER-positive (ER+)", key="er_positive"):
+                immunohisto_results.append("ER-positive (ER+)")
+            if st.checkbox("ER-negative (ER-)", key="er_negative"):
+                immunohisto_results.append("ER-negative (ER-)")
+        
+        with col2:
+            if st.checkbox("PR-positive (PR+)", key="pr_positive"):
+                immunohisto_results.append("PR-positive (PR+)")
+            if st.checkbox("HR-positive (HR+)", key="hr_positive"):
+                immunohisto_results.append("HR-positive (HR+)")
+        
+        with col3:
+            if st.checkbox("HR-negative (HR-)", key="hr_negative"):
+                immunohisto_results.append("HR-negative (HR-)")
+            if st.checkbox("HER2-positive (HER2+)", key="her2_positive"):
+                immunohisto_results.append("HER2-positive (HER2+)")
+        
+        with col4:
+            if st.checkbox("HER2-negative (HER2-)", key="her2_negative"):
+                immunohisto_results.append("HER2-negative (HER2-)")
+            if st.checkbox("Other", key="immunohisto_other_check"):
+                immunohisto_results.append("Other")
+                immunohisto_other = st.text_input(
+                    "Specify other results:",
+                    key="immunohisto_other_specify",
+                    placeholder="Please specify..."
+                )
     
     # 9. Disease stage
     st.markdown("**9. Disease stage at first diagnosis:**")
@@ -793,7 +843,8 @@ def render_linear_baseline_form(districts: List[str]) -> Dict:
         "district": district if not district.startswith("-- Select") else None,
         "initial_diagnosis": initial_diagnosis if not initial_diagnosis.startswith("-- Select") else None,
         "immunohisto_present": immunohisto_present,
-        "immunohisto_specify": immunohisto_specify if immunohisto_present == "Yes" else None,
+        "immunohisto_results": immunohisto_results if immunohisto_present == "Yes" else [],
+        "immunohisto_other": immunohisto_other if "Other" in immunohisto_results else None,
         "disease_stage": disease_stage,
         "comorbidities": {
             "diabetes": diabetes,

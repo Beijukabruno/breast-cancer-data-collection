@@ -1,0 +1,71 @@
+name: Deploy to Hugging Face Spaces
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        lfs: true
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install huggingface_hub
+
+    - name: Deploy to Hugging Face Spaces
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      run: |
+        # Configure git for huggingface_hub
+        git config --global user.email "actions@github.com"
+        git config --global user.name "GitHub Actions"
+        
+        # Install and configure huggingface_hub
+        python -c "
+        import os
+        from huggingface_hub import HfApi, create_repo
+        
+        # Initialize Hugging Face API
+        api = HfApi(token=os.environ['HF_TOKEN'])
+        
+        # Repository details
+        repo_id = 'Beijuka/breast-cancer-data-collection'
+        
+        try:
+            # Try to create the space (will skip if already exists)
+            create_repo(
+                repo_id=repo_id,
+                token=os.environ['HF_TOKEN'],
+                repo_type='space',
+                space_sdk='streamlit',
+                private=False,  # Set to True if you want it private
+                exist_ok=True
+            )
+            print(f'Space {repo_id} ready!')
+        except Exception as e:
+            print(f'Space creation result: {e}')
+        
+        # Upload all files to the space
+        api.upload_folder(
+            folder_path='.',
+            repo_id=repo_id,
+            repo_type='space',
+            token=os.environ['HF_TOKEN'],
+            ignore_patterns=['.git*', '__pycache__', '*.pyc', '.github'],
+        )
+        print(f'Successfully deployed to https://huggingface.co/spaces/{repo_id}')
+        "
