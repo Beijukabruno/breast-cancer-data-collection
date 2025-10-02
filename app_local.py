@@ -1,6 +1,6 @@
 """
-Breast Cancer Data Collection Tool - Hugging Face Spaces Version
-===============================================================
+Breast Cancer Data Collection Tool - Local Development Version
+=============================================================
 Data capture tool for analysis of adherence patterns to chemotherapy and their 
 association with recurrence-free survival among breast cancer patients at UCI.
 
@@ -8,17 +8,10 @@ Study Period: 2016 - 2018
 Author: Data Collection Team
 Date: October 2025
 
-This version is configured for deployment on Hugging Face Spaces and uses /tmp/data
-for file storage to avoid permission issues. For local development, use app_local.py
+This version is configured for local development and uses the local 'data' directory
+for file storage. For Hugging Face Spaces deployment, use app.py
 
-title: Breast Cancer Data Collection Tool
-emoji: 🎗️
-colorFrom: pink
-colorTo: purple
-sdk: streamlit
-sdk_version: 1.28.0
-app_file: app.py
-pinned: false
+Usage: streamlit run app_local.py
 """
 
 import streamlit as st
@@ -44,7 +37,7 @@ class Config:
     """Application configuration constants"""
     STUDY_START_DATE = date(2016, 1, 1)
     STUDY_END_DATE = date(2018, 12, 31)
-    DEFAULT_DATA_DIR = "/tmp/data"
+    DEFAULT_DATA_DIR = "data"
     
     # Form options
     EDUCATION_OPTIONS = ["None", "Primary", "Secondary", "Tertiary", "Not captured"]
