@@ -41,7 +41,7 @@ class Config:
     """Application configuration constants"""
     STUDY_START_DATE = date(2016, 1, 1)
     STUDY_END_DATE = date(2018, 12, 31)
-    DEFAULT_DATA_DIR = "/tmp/data"
+    DEFAULT_DATA_DIR = "data"
     
     # Form options
     EDUCATION_OPTIONS = ["None", "Primary", "Secondary", "Tertiary", "Not captured"]
