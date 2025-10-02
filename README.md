@@ -1,3 +1,14 @@
+---
+title: Breast Cancer Data Collection Tool
+emoji: 🎗️
+colorFrom: pink
+colorTo: purple
+sdk: docker
+app_port: 8501
+pinned: false
+license: apache-2.0
+---
+
 # Breast Cancer Data Collection Tool
 
 A comprehensive Streamlit web application for collecting and analyzing adherence patterns to chemotherapy treatment among breast cancer patients at UCI (2016-2018).
