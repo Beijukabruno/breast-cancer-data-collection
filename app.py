@@ -39,38 +39,44 @@ class Config:
     MARITAL_OPTIONS = ["Single", "Married", "Divorced", "Widowed", "Not captured"]
     INCOME_OPTIONS = ["Farmer", "Business", "Professional", "Unemployed", "Other"]
     DIAGNOSIS_OPTIONS = [
-        "Initial screening", "Inflammatory breast cancer", "Invasive ductal carcinoma", 
-        "Invasive lobular carcinoma", "Ductal carcinoma in situ", "Lobular carcinoma in situ", 
-        "Triple-negative breast cancer", "HER2-positive breast cancer", "Other"
+        "Invasive ductal carcinoma",
+        "Moderately differentiated invasive ductal carcinoma",
+        "Moderately differentiated ductal carcinoma",
+        "Ductal carcinoma in situ",
+        "Infiltrating carcinoma",
+        "Poorly differentiated adenocarcinoma",
+        "Invasive adenocarcinoma",
+        "Invasive lobular carcinoma",
+        "Other"
     ]
     STAGE_OPTIONS = ["Stage I", "Stage II", "Stage III", "Stage IV"]
     
     # Predefined medication options
     MEDICATION_OPTIONS = [
-        "1. Adriamycin",
-        "2. Cyclophosphamide", 
-        "3. Doxorubicin",
-        "4. Dexamethasone",
-        "5. 5-fluorouracil",
-        "6. Ondansetron",
-        "7. Ranitidine",
-        "8. Metoclopramide",
-        "9. Plasil",
-        "10. Ifosfamide",
-        "11. Mesna",
-        "12. Paclitaxel",
-        "13. Epirubicin",
-        "14. Carboplatin",
-        "15. Capecitabine (Xeloda)",
-        "16. Docetaxel",
-        "17. Epirubicin",
-        "18. Promethazine",
-        "19. Docetaxel",
-        "20. Tamoxifen",
-        "21. Anastrazole",
-        "22. Ifosfamide",
-        "23. Mesra",
-        "24. Promethazine"
+        "Adriamycin",
+        "Cyclophosphamide", 
+        "Doxorubicin",
+        "Dexamethasone",
+        "5-fluorouracil",
+        "Ondansetron",
+        "Ranitidine",
+        "Metoclopramide",
+        "Plasil",
+        "Ifosfamide",
+        "Mesna",
+        "Paclitaxel",
+        "Epirubicin",
+        "Carboplatin",
+        "Capecitabine (Xeloda)",
+        "Docetaxel",
+        "Epirubicin",
+        "Promethazine",
+        "Docetaxel",
+        "Tamoxifen",
+        "Anastrazole",
+        "Ifosfamide",
+        "Mesra",
+        "Promethazine"
     ]
     
     REGIMEN_OPTIONS = [
