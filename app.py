@@ -562,7 +562,7 @@ def render_cycle_1_form(patient_id: str) -> Dict:
     return {
         "cycle_number": 1,
         "patient_id": patient_id,
-        "regimen_prescribed": regimen_prescribed if not regimen_prescribed.startswith("-- Select") else None,
+        "regimen_prescribed": regimen_prescribed if regimen_prescribed and not regimen_prescribed.startswith("-- Select") else None,
         "prescription_date": prescription_date.strftime("%Y-%m-%d"),
         "medications": medications,
         "chemo_received_date": chemo_received_date.strftime("%Y-%m-%d"),
@@ -847,8 +847,8 @@ def render_linear_baseline_form(districts: List[str]) -> Dict:
         "marital_status": marital_status,
         "income_source": income_source,
         "income_other": income_other if income_source == "Other" else None,
-        "district": district if not district.startswith("-- Select") else None,
-        "initial_diagnosis": initial_diagnosis if not initial_diagnosis.startswith("-- Select") else None,
+        "district": district if district and not district.startswith("-- Select") else None,
+        "initial_diagnosis": initial_diagnosis if initial_diagnosis and not initial_diagnosis.startswith("-- Select") else None,
         "immunohisto_present": immunohisto_present,
         "immunohisto_results": immunohisto_results if immunohisto_present == "Yes" else [],
         "immunohisto_other": immunohisto_other if "Other" in immunohisto_results else None,
@@ -862,7 +862,7 @@ def render_linear_baseline_form(districts: List[str]) -> Dict:
             "other_specify": commodities_other if other_comorbidities else None
         },
         "chemo_cycles_prescribed": chemo_cycles,
-        "regimen_prescribed": regimen_prescribed if not regimen_prescribed.startswith("-- Select") else None,
+        "regimen_prescribed": regimen_prescribed if regimen_prescribed and not regimen_prescribed.startswith("-- Select") else None,
         "treatment_started": treatment_started,
         "treatment_not_started_reason": treatment_not_started_reason if treatment_started == "No" else None
     }
