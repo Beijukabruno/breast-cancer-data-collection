@@ -1006,10 +1006,16 @@ def main():
         patient_data = load_patient_data(st.session_state.current_patient_id)
         existing_cycles = len(patient_data.get("treatment_cycles", []))
         
+        # Debug information
+        with st.expander("🔍 Debug Info", expanded=False):
+            st.write("**Patient Data:**", patient_data)
+            st.write("**Existing Cycles Count:**", existing_cycles)
+            st.write("**Treatment Cycles:**", patient_data.get("treatment_cycles", []))
+        
         st.markdown("---")
         st.subheader("🔄 Treatment Cycles Management")
         
-        col1, col2, col3 = st.columns([2, 2, 1])
+        col1, col2, col3, col4 = st.columns([2, 2, 1, 1])
         
         with col1:
             st.metric("Patient ID", st.session_state.current_patient_id)
@@ -1023,6 +1029,20 @@ def main():
                 st.session_state.current_cycle = 0
                 clear_form_fields()
                 st.rerun()
+        with col4:
+            if st.button("🗑️ Clear Data", help="Clear all data for this patient", type="secondary"):
+                import os
+                try:
+                    sanitized_id = sanitize_patient_id(st.session_state.current_patient_id)
+                    patient_folder = os.path.join(st.session_state.data_directory, f"patient_{sanitized_id}")
+                    if os.path.exists(patient_folder):
+                        import shutil
+                        shutil.rmtree(patient_folder)
+                        st.success("Patient data cleared!")
+                        st.session_state.current_cycle = 0
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"Error clearing data: {e}")
         
         # Show cycle addition buttons
         next_cycle = existing_cycles + 1
