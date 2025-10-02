@@ -44,6 +44,35 @@ class Config:
         "Triple-negative breast cancer", "HER2-positive breast cancer", "Other"
     ]
     STAGE_OPTIONS = ["Stage I", "Stage II", "Stage III", "Stage IV"]
+    
+    # Predefined medication options
+    MEDICATION_OPTIONS = [
+        "1. Adriamycin",
+        "2. Cyclophosphamide", 
+        "3. Doxorubicin",
+        "4. Dexamethasone",
+        "5. 5-fluorouracil",
+        "6. Ondansetron",
+        "7. Ranitidine",
+        "8. Metoclopramide",
+        "9. Plasil",
+        "10. Ifosfamide",
+        "11. Mesna",
+        "12. Paclitaxel",
+        "13. Epirubicin",
+        "14. Carboplatin",
+        "15. Capecitabine (Xeloda)",
+        "16. Docetaxel",
+        "17. Epirubicin",
+        "18. Promethazine",
+        "19. Docetaxel",
+        "20. Tamoxifen",
+        "21. Anastrazole",
+        "22. Ifosfamide",
+        "23. Mesra",
+        "24. Promethazine"
+    ]
+    
     REGIMEN_OPTIONS = [
         "AC (Doxorubicin + Cyclophosphamide)",
         "AC-T (Doxorubicin + Cyclophosphamide + Paclitaxel)",
@@ -52,6 +81,10 @@ class Config:
         "FEC (5-Fluorouracil + Epirubicin + Cyclophosphamide)",
         "TC (Docetaxel + Cyclophosphamide)",
         "TCH (Docetaxel + Carboplatin + Trastuzumab)",
+        "TAC (Docetaxel + Doxorubicin + Cyclophosphamide)",
+        "EC-T (Epirubicin + Cyclophosphamide + Paclitaxel)",
+        "Capecitabine (Xeloda) monotherapy",
+        "Tamoxifen monotherapy",
         "Other"
     ]
     SIDE_EFFECTS_OPTIONS = ["Nausea", "Fatigue", "Vomiting", "Neuropathy", "None", "Other"]
@@ -245,52 +278,75 @@ def load_patient_data(patient_id: str) -> Dict:
 
 
 def render_dynamic_medications(cycle_num: int) -> List[Dict]:
-    """Render dynamic medication input fields"""
+    """Render dynamic medication input fields with dropdown selection"""
     st.markdown("**Medications & Dosages:**")
     
     # Initialize medications in session state
     med_key = f"cycle_{cycle_num}_medications"
     if med_key not in st.session_state:
-        st.session_state[med_key] = [{"name": "", "dosage": 0}]
+        st.session_state[med_key] = [{"name": "", "dose": "", "unit": "mg"}]
     
     medications = []
     
     for i, med in enumerate(st.session_state[med_key]):
-        col1, col2, col3 = st.columns([3, 2, 1])
+        col1, col2, col3, col4 = st.columns([3, 2, 1, 1])
         
         with col1:
-            med_name = st.text_input(
+            # Medication dropdown with search
+            medication_options = ["-- Select Medication --"] + Config.MEDICATION_OPTIONS + ["Other (specify)"]
+            selected_med = st.selectbox(
                 f"Medication {i+1}:",
-                value=med.get("name", ""),
-                key=f"med_name_{cycle_num}_{i}",
-                placeholder="e.g., Doxorubicin"
+                medication_options,
+                index=0 if not med.get("name") else (
+                    medication_options.index(med.get("name")) if med.get("name") in medication_options else 0
+                ),
+                key=f"med_name_{cycle_num}_{i}"
             )
+            
+            # If "Other" is selected, show text input
+            if selected_med == "Other (specify)":
+                med_name = st.text_input(
+                    "Specify medication:",
+                    value=med.get("custom_name", ""),
+                    key=f"med_custom_{cycle_num}_{i}",
+                    placeholder="Enter medication name"
+                )
+            else:
+                med_name = selected_med if not selected_med.startswith("-- Select") else ""
         
         with col2:
-            med_dosage = st.number_input(
-                f"Dosage (mg):",
-                value=med.get("dosage", 0),
-                min_value=0,
-                max_value=10000,
-                step=1,
-                key=f"med_dosage_{cycle_num}_{i}"
+            med_dose = st.text_input(
+                f"Dose:",
+                value=med.get("dose", ""),
+                key=f"med_dose_{cycle_num}_{i}",
+                placeholder="e.g., 60, 1.5"
             )
         
         with col3:
+            med_unit = st.selectbox(
+                f"Unit:",
+                ["mg", "mg/m2", "g", "mL", "tabs", "IU"],
+                index=0 if med.get("unit", "mg") == "mg" else ["mg", "mg/m2", "g", "mL", "tabs", "IU"].index(med.get("unit", "mg")),
+                key=f"med_unit_{cycle_num}_{i}"
+            )
+        
+        with col4:
             if len(st.session_state[med_key]) > 1:
                 if st.button("🗑️", key=f"remove_med_{cycle_num}_{i}", help="Remove medication"):
                     st.session_state[med_key].pop(i)
                     st.rerun()
         
-        if med_name.strip():  # Only add to list if name is provided
+        # Only add to medications list if a medication is actually selected
+        if med_name and not med_name.startswith("-- Select"):
             medications.append({
-                "name": med_name.strip(),
-                "dosage": med_dosage
+                "name": med_name,
+                "dose": med_dose,
+                "unit": med_unit
             })
     
     # Add medication button
     if st.button("➕ Add Medication", key=f"add_med_{cycle_num}"):
-        st.session_state[med_key].append({"name": "", "dosage": 0})
+        st.session_state[med_key].append({"name": "", "dose": "", "unit": "mg"})
         st.rerun()
     
     return medications
