@@ -41,7 +41,7 @@ class Config:
     """Application configuration constants"""
     STUDY_START_DATE = date(2016, 1, 1)
     STUDY_END_DATE = date(2018, 12, 31)
-    DEFAULT_DATA_DIR = "data"
+    DEFAULT_DATA_DIR = "/tmp/data"
     
     # Form options
     EDUCATION_OPTIONS = ["None", "Primary", "Secondary", "Tertiary", "Not captured"]
@@ -119,6 +119,11 @@ class Config:
 # ========================================================================================
 # UTILITY FUNCTIONS
 # ========================================================================================
+
+def sanitize_patient_id(patient_id: str) -> str:
+    """Sanitize patient ID for safe use in file paths"""
+    # Replace forward slashes and other problematic characters with underscores
+    return patient_id.replace("/", "_").replace("\\", "_").replace(":", "_").replace("*", "_").replace("?", "_").replace('"', "_").replace("<", "_").replace(">", "_").replace("|", "_")
 
 def load_uganda_districts() -> List[str]:
     """Load Uganda districts from districts.txt file"""
@@ -238,13 +243,14 @@ def save_patient_data(data: Dict, data_type: str = "baseline") -> tuple[bool, st
     try:
         # Create directory structure
         base_dir = os.path.expanduser(st.session_state.data_directory)
-        patient_folder = os.path.join(base_dir, f"patient_{data['patient_id']}")
+        sanitized_patient_id = sanitize_patient_id(data['patient_id'])
+        patient_folder = os.path.join(base_dir, f"patient_{sanitized_patient_id}")
         
         os.makedirs(base_dir, exist_ok=True)
         os.makedirs(patient_folder, exist_ok=True)
         
         # Main patient file
-        main_filename = os.path.join(patient_folder, f"patient_{data['patient_id']}.json")
+        main_filename = os.path.join(patient_folder, f"patient_{sanitized_patient_id}.json")
         
         # Load existing data or create new structure
         if os.path.exists(main_filename):
@@ -285,8 +291,9 @@ def load_patient_data(patient_id: str) -> Dict:
     """Load patient data from JSON file"""
     try:
         base_dir = os.path.expanduser(st.session_state.data_directory)
-        patient_folder = os.path.join(base_dir, f"patient_{patient_id}")
-        filename = os.path.join(patient_folder, f"patient_{patient_id}.json")
+        sanitized_patient_id = sanitize_patient_id(patient_id)
+        patient_folder = os.path.join(base_dir, f"patient_{sanitized_patient_id}")
+        filename = os.path.join(patient_folder, f"patient_{sanitized_patient_id}.json")
         
         if os.path.exists(filename):
             with open(filename, "r") as f:
