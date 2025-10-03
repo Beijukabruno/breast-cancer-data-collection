@@ -147,6 +147,8 @@ def initialize_session_state() -> None:
         st.session_state.baseline_completed = False
     if 'current_cycle' not in st.session_state:
         st.session_state.current_cycle = 0
+    if 'show_final_followup' not in st.session_state:
+        st.session_state.show_final_followup = False
 
 
 def clear_form_fields() -> None:
@@ -256,7 +258,8 @@ def save_patient_data(data: Dict, data_type: str = "baseline") -> tuple[bool, st
             patient_data = {
                 "patient_id": data['patient_id'],
                 "baseline_data": {},
-                "treatment_cycles": []
+                "treatment_cycles": [],
+                "final_followup": {}
             }
         
         if data_type == "baseline":
@@ -272,6 +275,8 @@ def save_patient_data(data: Dict, data_type: str = "baseline") -> tuple[bool, st
             else:
                 # Add new cycle
                 patient_data["treatment_cycles"].append(data)
+        elif data_type == "final_followup":
+            patient_data["final_followup"] = data
         
         # Save updated data
         with open(main_filename, "w") as f:
@@ -576,6 +581,134 @@ def render_cycle_form(patient_id: str, cycle_number: int) -> Dict:
         "condition_other": condition_other if patient_condition == "Other" else None,
         "hospitalization": hospitalization,
         "hospitalization_reason": hospitalization_reason if hospitalization == "Yes" else None
+    }
+
+
+def render_final_followup_form(patient_id: str) -> Dict:
+    """Render the Final Follow-Up Visit form"""
+    st.header("🏥 Recurrence-Free Survival and Outcomes (Final Follow-Up Visit)")
+    st.markdown("---")
+    
+    # Last recorded review date
+    st.markdown("**Last recorded review date:**")
+    last_review_date = st.date_input(
+        "Review Date",
+        value=date.today(),
+        min_value=Config.STUDY_START_DATE,
+        max_value=date.today(),
+        help="Select the date of the last follow-up visit"
+    )
+    
+    # General condition
+    st.markdown("**What was the general condition of the patient on the last visit?**")
+    general_condition = st.text_area(
+        "General Condition",
+        placeholder="Describe the patient's general condition...",
+        help="Enter details about the patient's overall condition during the last visit"
+    )
+    
+    # Follow-up attendance
+    st.markdown("**Did the patient come back for follow up?**")
+    followup_attendance = st.radio(
+        "Follow-up Attendance",
+        options=["Yes", "No"],
+        index=0,
+        help="Select whether the patient attended follow-up visits"
+    )
+    
+    # Conditional: Why no follow-up
+    no_followup_reason = None
+    if followup_attendance == "No":
+        st.markdown("**If No, why?**")
+        no_followup_reason = st.text_area(
+            "Reason for no follow-up",
+            placeholder="Explain why the patient did not come for follow-up...",
+            help="Provide details about why follow-up was missed"
+        )
+    
+    # Comorbidities developed
+    st.markdown("**List of any comorbidities developed:**")
+    comorbidities_options = ["Diabetes", "Hypertension", "HIV", "None captured", "Other"]
+    comorbidities_developed = st.multiselect(
+        "Comorbidities Developed",
+        options=comorbidities_options,
+        help="Select all comorbidities that developed during follow-up"
+    )
+    
+    # Conditional: Other comorbidity
+    other_comorbidity = None
+    if "Other" in comorbidities_developed:
+        st.markdown("**Please specify other comorbidity:**")
+        other_comorbidity = st.text_input(
+            "Other Comorbidity",
+            placeholder="Specify the other comorbidity...",
+            help="Enter details about the other comorbidity"
+        )
+    
+    # Breast cancer recurrence
+    st.markdown("**Has the patient developed breast cancer recurrence?**")
+    recurrence = st.radio(
+        "Breast Cancer Recurrence",
+        options=["No", "Yes"],
+        index=0,
+        help="Select whether breast cancer recurrence was detected"
+    )
+    
+    # Conditional: Recurrence date
+    recurrence_date = None
+    if recurrence == "Yes":
+        st.markdown("**If Yes, on what date was the recurrence confirmed?**")
+        recurrence_date = st.date_input(
+            "Recurrence Confirmation Date",
+            value=date.today(),
+            min_value=Config.STUDY_START_DATE,
+            max_value=date.today(),
+            help="Select the date when recurrence was confirmed"
+        )
+    
+    # Patient status
+    st.markdown("**Is the patient still alive at last follow-up?**")
+    patient_status = st.radio(
+        "Patient Status",
+        options=["Alive", "Deceased"],
+        index=0,
+        help="Select the patient's vital status at last follow-up"
+    )
+    
+    # Conditional: Death details
+    death_date = None
+    death_cause = None
+    if patient_status == "Deceased":
+        st.markdown("**Date of death if the patient passed away:**")
+        death_date = st.date_input(
+            "Date of Death",
+            value=date.today(),
+            min_value=Config.STUDY_START_DATE,
+            max_value=date.today(),
+            help="Select the date when the patient passed away"
+        )
+        
+        st.markdown("**Primary cause of death:**")
+        death_cause = st.text_area(
+            "Primary Cause of Death",
+            placeholder="Describe the primary cause of death...",
+            help="Enter the primary cause of death"
+        )
+    
+    # Return final follow-up data
+    return {
+        "patient_id": patient_id,
+        "last_review_date": last_review_date.strftime("%Y-%m-%d"),
+        "general_condition": general_condition,
+        "followup_attendance": followup_attendance,
+        "no_followup_reason": no_followup_reason,
+        "comorbidities_developed": comorbidities_developed,
+        "other_comorbidity": other_comorbidity,
+        "recurrence": recurrence,
+        "recurrence_date": recurrence_date.strftime("%Y-%m-%d") if recurrence_date else None,
+        "patient_status": patient_status,
+        "death_date": death_date.strftime("%Y-%m-%d") if death_date else None,
+        "death_cause": death_cause
     }
 
 
@@ -896,6 +1029,68 @@ def render_cycle_actions(cycle_data, cycle_number):
             st.rerun()
 
 
+def render_final_followup_actions(followup_data):
+    """Render action buttons for final follow-up form"""
+    st.markdown("---")
+    col1, col2, col3 = st.columns([2, 2, 1])
+    
+    with col1:
+        if st.button("💾 Save Complete Record", type="primary", use_container_width=True):
+            if validate_final_followup_data(followup_data):
+                # Save final follow-up data
+                success, result = save_patient_data(followup_data, data_type='final_followup')
+                if success:
+                    st.success("🎉 Complete patient record saved successfully!")
+                    st.balloons()
+                    # Reset all session state for new patient
+                    st.session_state.baseline_completed = False
+                    st.session_state.current_patient_id = None
+                    st.session_state.current_cycle = 0
+                    st.session_state.show_final_followup = False
+                    time.sleep(2)
+                    st.rerun()
+                else:
+                    st.error(f"❌ Failed to save final follow-up data: {result}")
+            else:
+                st.error("❌ Please fill in all required fields before saving.")
+    
+    with col2:
+        if st.button("🔙 Back to Cycles", use_container_width=True):
+            st.session_state.show_final_followup = False
+            st.rerun()
+    
+    with col3:
+        if st.button("🗑️", help="Clear form", use_container_width=True):
+            # Clear final follow-up form fields
+            st.rerun()
+
+
+def validate_final_followup_data(followup_data):
+    """Validate final follow-up form data"""
+    if not followup_data:
+        return False
+    
+    # Check required fields
+    required_fields = ['last_review_date', 'general_condition', 'followup_attendance', 'patient_status']
+    
+    for field in required_fields:
+        if field not in followup_data or not followup_data[field]:
+            return False
+    
+    # Additional validation for conditional fields
+    if followup_data.get('followup_attendance') == 'No' and not followup_data.get('no_followup_reason'):
+        return False
+    
+    if followup_data.get('recurrence') == 'Yes' and not followup_data.get('recurrence_date'):
+        return False
+    
+    if followup_data.get('patient_status') == 'Deceased':
+        if not followup_data.get('death_date') or not followup_data.get('death_cause'):
+            return False
+    
+    return True
+
+
 def validate_cycle_data(cycle_data):
     """Validate cycle form data"""
     if not cycle_data:
@@ -1027,6 +1222,7 @@ def main():
                 st.session_state.baseline_completed = False
                 st.session_state.current_patient_id = None
                 st.session_state.current_cycle = 0
+                st.session_state.show_final_followup = False
                 clear_form_fields()
                 st.rerun()
         with col4:
@@ -1040,6 +1236,7 @@ def main():
                         shutil.rmtree(patient_folder)
                         st.success("Patient data cleared!")
                         st.session_state.current_cycle = 0
+                        st.session_state.show_final_followup = False
                         st.rerun()
                 except Exception as e:
                     st.error(f"Error clearing data: {e}")
@@ -1060,17 +1257,20 @@ def main():
                     st.session_state.current_cycle = next_cycle
                     st.rerun()
             with col_b:
-                if st.button("✅ Complete Treatment", use_container_width=True):
-                    st.session_state.baseline_completed = False
-                    st.session_state.current_patient_id = None
+                if st.button("🏥 Final Follow-Up Visit", use_container_width=True):
+                    st.session_state.show_final_followup = True
                     st.session_state.current_cycle = 0
-                    st.success("🎉 Treatment cycles completed! Ready for new patient.")
                     st.rerun()
         
         # Show cycle form if current_cycle is set
         if st.session_state.current_cycle > 0:
             cycle_data = render_cycle_form(st.session_state.current_patient_id, st.session_state.current_cycle)
             render_cycle_actions(cycle_data, st.session_state.current_cycle)
+    
+    # Show final follow-up form if requested
+    if st.session_state.show_final_followup:
+        final_followup_data = render_final_followup_form(st.session_state.current_patient_id)
+        render_final_followup_actions(final_followup_data)
     
     # Footer
     render_footer()
