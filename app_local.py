@@ -128,10 +128,10 @@ def load_uganda_districts() -> List[str]:
             districts = [line.strip() for line in f.readlines() if line.strip()]
         return sorted(districts)
     except FileNotFoundError:
-        st.error("⚠️ districts.txt file not found. Please ensure the file exists in the same directory.")
+        st.error("districts.txt file not found. Please ensure the file exists in the same directory.")
         return ["File not found - Please check districts.txt"]
     except Exception as e:
-        st.error(f"⚠️ Error loading districts: {str(e)}")
+        st.error(f"Error loading districts: {str(e)}")
         return ["Error loading districts"]
 
 
@@ -368,7 +368,7 @@ def render_dynamic_medications(cycle_num: int) -> List[Dict]:
         
         with col4:
             if len(st.session_state[med_key]) > 1:
-                if st.button("🗑️", key=f"remove_med_{cycle_num}_{i}", help="Remove medication"):
+                if st.button("Remove", key=f"remove_med_{cycle_num}_{i}", help="Remove medication"):
                     st.session_state[med_key].pop(i)
                     st.rerun()
         
@@ -586,7 +586,7 @@ def render_cycle_form(patient_id: str, cycle_number: int) -> Dict:
 
 def render_final_followup_form(patient_id: str) -> Dict:
     """Render the Final Follow-Up Visit form"""
-    st.header("🏥 Recurrence-Free Survival and Outcomes (Final Follow-Up Visit)")
+    st.header("Recurrence-Free Survival and Outcomes (Final Follow-Up Visit)")
     st.markdown("---")
     
     # Last recorded review date
@@ -612,7 +612,7 @@ def render_final_followup_form(patient_id: str) -> Dict:
     followup_attendance = st.radio(
         "Follow-up Attendance",
         options=["Yes", "No"],
-        index=0,
+        index=None,
         help="Select whether the patient attended follow-up visits"
     )
     
@@ -650,7 +650,7 @@ def render_final_followup_form(patient_id: str) -> Dict:
     recurrence = st.radio(
         "Breast Cancer Recurrence",
         options=["No", "Yes"],
-        index=0,
+        index=None,
         help="Select whether breast cancer recurrence was detected"
     )
     
@@ -671,7 +671,7 @@ def render_final_followup_form(patient_id: str) -> Dict:
     patient_status = st.radio(
         "Patient Status",
         options=["Alive", "Deceased"],
-        index=0,
+        index=None,
         help="Select the patient's vital status at last follow-up"
     )
     
@@ -725,7 +725,7 @@ def render_page_header() -> None:
 def render_data_storage_config() -> None:
     """Render data storage configuration in sidebar"""
     with st.sidebar:
-        st.header("⚙️ Settings")
+        st.header("Settings")
         data_dir = st.text_input(
             "Data Storage Directory",
             value=st.session_state.data_directory,
@@ -1003,28 +1003,28 @@ def render_cycle_actions(cycle_data, cycle_number):
     col1, col2, col3 = st.columns([2, 2, 1])
     
     with col1:
-        if st.button("💾 Save Cycle", type="primary", use_container_width=True):
+        if st.button("Save Cycle", type="primary", use_container_width=True):
             if validate_cycle_data(cycle_data):
                 # Save cycle data
                 success, result = save_patient_data(cycle_data, data_type='cycle')
                 if success:
-                    st.success(f"✅ Treatment Cycle {cycle_number} data saved successfully!")
+                    st.success(f"Treatment Cycle {cycle_number} data saved successfully!")
                     # Reset current cycle to go back to cycle management
                     st.session_state.current_cycle = 0
                     time.sleep(1)
                     st.rerun()
                 else:
-                    st.error(f"❌ Failed to save cycle data: {result}")
+                    st.error(f"Failed to save cycle data: {result}")
             else:
-                st.error("❌ Please fill in all required fields before saving.")
+                st.error("Please fill in all required fields before saving.")
     
     with col2:
-        if st.button("🚫 Cancel Cycle", use_container_width=True):
+        if st.button("Cancel Cycle", use_container_width=True):
             st.session_state.current_cycle = 0
             st.rerun()
     
     with col3:
-        if st.button("🗑️", help="Clear form", use_container_width=True):
+        if st.button("Clear", help="Clear form", use_container_width=True):
             clear_form_fields()
             st.rerun()
 
@@ -1035,12 +1035,12 @@ def render_final_followup_actions(followup_data):
     col1, col2, col3 = st.columns([2, 2, 1])
     
     with col1:
-        if st.button("💾 Save Complete Record", type="primary", use_container_width=True):
+        if st.button("Save Complete Record", type="primary", use_container_width=True):
             if validate_final_followup_data(followup_data):
                 # Save final follow-up data
                 success, result = save_patient_data(followup_data, data_type='final_followup')
                 if success:
-                    st.success("🎉 Complete patient record saved successfully!")
+                    st.success("Complete patient record saved successfully!")
                     st.balloons()
                     # Reset all session state for new patient
                     st.session_state.baseline_completed = False
@@ -1050,17 +1050,17 @@ def render_final_followup_actions(followup_data):
                     time.sleep(2)
                     st.rerun()
                 else:
-                    st.error(f"❌ Failed to save final follow-up data: {result}")
+                    st.error(f"Failed to save final follow-up data: {result}")
             else:
-                st.error("❌ Please fill in all required fields before saving.")
+                st.error("Please fill in all required fields before saving.")
     
     with col2:
-        if st.button("🔙 Back to Cycles", use_container_width=True):
+        if st.button("Back to Cycles", use_container_width=True):
             st.session_state.show_final_followup = False
             st.rerun()
     
     with col3:
-        if st.button("🗑️", help="Clear form", use_container_width=True):
+        if st.button("Clear", help="Clear form", use_container_width=True):
             # Clear final follow-up form fields
             st.rerun()
 
@@ -1122,19 +1122,19 @@ def render_form_actions(form_data: Dict) -> None:
     col1, col2 = st.columns([3, 1])
     
     with col1:
-        if st.button("💾 Save Baseline Data", type="primary", use_container_width=True):
+        if st.button("Save Baseline Data", type="primary", use_container_width=True):
             # Validate form data
             error_msg = validate_form_data(form_data)
             
             if error_msg:
-                st.error(f"❌ {error_msg}")
+                st.error(f"{error_msg}")
             else:
                 # Save data
                 success, result = save_patient_data(form_data, "baseline")
                 
                 if success:
-                    st.success(f"✅ Baseline data for Patient {form_data['patient_id']} saved successfully!")
-                    st.success(f"📁 File saved to: {result}")
+                    st.success(f"Baseline data for Patient {form_data['patient_id']} saved successfully!")
+                    st.success(f"File saved to: {result}")
                     
                     # Update session state
                     st.session_state.patient_data = form_data
@@ -1143,7 +1143,7 @@ def render_form_actions(form_data: Dict) -> None:
                     st.session_state.current_cycle = 0
                     
                     # Show success metrics
-                    with st.expander("📋 Saved Data Summary", expanded=True):
+                    with st.expander("Saved Data Summary", expanded=True):
                         col_a, col_b = st.columns(2)
                         with col_a:
                             st.metric("Patient ID", form_data['patient_id'])
@@ -1156,10 +1156,10 @@ def render_form_actions(form_data: Dict) -> None:
                     
                     st.rerun()  # Refresh to show cycle options
                 else:
-                    st.error(f"❌ Error saving data: {result}")
+                    st.error(f"Error saving data: {result}")
     
     with col2:
-        if st.button("🔄 Clear Form", use_container_width=True):
+        if st.button("Clear Form", use_container_width=True):
             clear_form_fields()
             st.rerun()
 
@@ -1195,20 +1195,20 @@ def main():
         render_form_actions(form_data)
     else:
         # Baseline completed - show cycle management
-        st.success(f"✅ Baseline data completed for Patient {st.session_state.current_patient_id}")
+        st.success(f"Baseline data completed for Patient {st.session_state.current_patient_id}")
         
         # Load patient data to check existing cycles
         patient_data = load_patient_data(st.session_state.current_patient_id)
         existing_cycles = len(patient_data.get("treatment_cycles", []))
         
         # Debug information
-        with st.expander("🔍 Debug Info", expanded=False):
+        with st.expander("Debug Info", expanded=False):
             st.write("**Patient Data:**", patient_data)
             st.write("**Existing Cycles Count:**", existing_cycles)
             st.write("**Treatment Cycles:**", patient_data.get("treatment_cycles", []))
         
         st.markdown("---")
-        st.subheader("🔄 Treatment Cycles Management")
+        st.subheader("Treatment Cycles Management")
         
         col1, col2, col3, col4 = st.columns([2, 2, 1, 1])
         
@@ -1217,7 +1217,7 @@ def main():
         with col2:
             st.metric("Completed Cycles", existing_cycles)
         with col3:
-            if st.button("🔄 New Patient", help="Start with a new patient"):
+            if st.button("New Patient", help="Start with a new patient"):
                 # Reset session state
                 st.session_state.baseline_completed = False
                 st.session_state.current_patient_id = None
@@ -1226,7 +1226,7 @@ def main():
                 clear_form_fields()
                 st.rerun()
         with col4:
-            if st.button("🗑️ Clear Data", help="Clear all data for this patient", type="secondary"):
+            if st.button("Clear Data", help="Clear all data for this patient", type="secondary"):
                 import os
                 try:
                     sanitized_id = sanitize_patient_id(st.session_state.current_patient_id)
@@ -1246,18 +1246,18 @@ def main():
         
         if next_cycle == 1:
             st.markdown("### Ready to add Treatment Cycle 1")
-            if st.button(f"📋 Add Treatment Cycle 1", type="primary", use_container_width=True):
+            if st.button(f"Add Treatment Cycle 1", type="primary", use_container_width=True):
                 st.session_state.current_cycle = 1
                 st.rerun()
         else:
             st.markdown(f"### Ready to add Treatment Cycle {next_cycle}")
             col_a, col_b = st.columns(2)
             with col_a:
-                if st.button(f"📋 Add Treatment Cycle {next_cycle}", type="primary", use_container_width=True):
+                if st.button(f"Add Treatment Cycle {next_cycle}", type="primary", use_container_width=True):
                     st.session_state.current_cycle = next_cycle
                     st.rerun()
             with col_b:
-                if st.button("🏥 Final Follow-Up Visit", use_container_width=True):
+                if st.button("Final Follow-Up Visit", use_container_width=True):
                     st.session_state.show_final_followup = True
                     st.session_state.current_cycle = 0
                     st.rerun()
