@@ -43,7 +43,7 @@ def render_linear_baseline_form(districts: List[str]) -> Dict:
 class Config:
     """Application configuration constants"""
     STUDY_START_DATE = date(2016, 1, 1)
-    STUDY_END_DATE = date(2018, 12, 31)
+    STUDY_END_DATE = date(2025, 12, 31)
     DEFAULT_DATA_DIR = "/tmp/data"
     
     # Form options
@@ -604,7 +604,7 @@ def render_final_followup_form(patient_id: str) -> Dict:
         "Review Date",
         value=date.today(),
         min_value=Config.STUDY_START_DATE,
-        max_value=date.today(),
+        max_value=Config.STUDY_END_DATE,
         help="Select the date of the last follow-up visit"
     )
     
@@ -636,23 +636,38 @@ def render_final_followup_form(patient_id: str) -> Dict:
         )
     
     # Comorbidities developed
-    st.markdown("**List of any comorbidities developed:**")
-    comorbidities_options = ["Diabetes", "Hypertension", "HIV", "None captured", "Other"]
-    comorbidities_developed = st.multiselect(
-        "Comorbidities Developed",
-        options=comorbidities_options,
-        help="Select all comorbidities that developed during follow-up"
-    )
+    st.markdown("**List of any comorbidities developed (you can select multiple):**")
     
-    # Conditional: Other comorbidity
+    # Create checkboxes in a grid layout
+    comorbidities_developed = []
     other_comorbidity = None
-    if "Other" in comorbidities_developed:
-        st.markdown("**Please specify other comorbidity:**")
-        other_comorbidity = st.text_input(
-            "Other Comorbidity",
-            placeholder="Specify the other comorbidity...",
-            help="Enter details about the other comorbidity"
-        )
+    
+    col1, col2, col3, col4, col5 = st.columns(5)
+    
+    with col1:
+        if st.checkbox("Diabetes", key="followup_diabetes"):
+            comorbidities_developed.append("Diabetes")
+    
+    with col2:
+        if st.checkbox("Hypertension", key="followup_hypertension"):
+            comorbidities_developed.append("Hypertension")
+    
+    with col3:
+        if st.checkbox("HIV", key="followup_hiv"):
+            comorbidities_developed.append("HIV")
+    
+    with col4:
+        if st.checkbox("None captured", key="followup_none_captured"):
+            comorbidities_developed.append("None captured")
+    
+    with col5:
+        if st.checkbox("Other", key="followup_other_comorbidity"):
+            comorbidities_developed.append("Other")
+            other_comorbidity = st.text_input(
+                "Specify other comorbidity:",
+                placeholder="Specify the other comorbidity...",
+                help="Enter details about the other comorbidity"
+            )
     
     # Breast cancer recurrence
     st.markdown("**Has the patient developed breast cancer recurrence?**")
@@ -671,7 +686,7 @@ def render_final_followup_form(patient_id: str) -> Dict:
             "Recurrence Confirmation Date",
             value=date.today(),
             min_value=Config.STUDY_START_DATE,
-            max_value=date.today(),
+            max_value=Config.STUDY_END_DATE,
             help="Select the date when recurrence was confirmed"
         )
     
@@ -693,7 +708,7 @@ def render_final_followup_form(patient_id: str) -> Dict:
             "Date of Death",
             value=date.today(),
             min_value=Config.STUDY_START_DATE,
-            max_value=date.today(),
+            max_value=Config.STUDY_END_DATE,
             help="Select the date when the patient passed away"
         )
         
@@ -787,7 +802,7 @@ def render_linear_baseline_form(districts: List[str]) -> Dict:
             min_value=Config.STUDY_START_DATE,
             max_value=Config.STUDY_END_DATE,
             key="date_admitted",
-            help="Select date between 2016-2018"
+            help="Select date between 2016-2025"
         )
     
     # 3. Education Level
