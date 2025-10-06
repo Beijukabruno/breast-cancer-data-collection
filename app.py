@@ -984,12 +984,34 @@ def render_linear_baseline_form(districts: List[str]) -> Dict:
     
     # Conditional input for "No" treatment start
     treatment_not_started_reason = ""
+    treatment_not_started_other = ""
     if treatment_started == "No":
-        treatment_not_started_reason = st.text_input(
-            "If No, why?:",
-            key="treatment_not_started_reason",
-            placeholder="Please specify reason..."
+        st.markdown("**If No, why?**")
+        reason_options = [
+            "Physical toll (fear of side effects)",
+            "Fear of Long-term damage", 
+            "Financial / cost barriers",
+            "Distance and access",
+            "Late diagnosis",
+            "Social / family factors",
+            "Older age, existing illnesses, or weak health",
+            "Other"
+        ]
+        
+        treatment_not_started_reason = st.selectbox(
+            "Select reason:",
+            ["-- Select Reason --"] + reason_options,
+            key="treatment_not_started_reason_select",
+            index=0
         )
+        
+        # If "Other" is selected, show text input
+        if treatment_not_started_reason == "Other":
+            treatment_not_started_other = st.text_input(
+                "Please specify other reason:",
+                key="treatment_not_started_other",
+                placeholder="Enter specific reason..."
+            )
     
     # Return all collected data
     return {
@@ -1017,7 +1039,8 @@ def render_linear_baseline_form(districts: List[str]) -> Dict:
         "chemo_cycles_prescribed": chemo_cycles,
         "regimen_prescribed": regimen_prescribed if regimen_prescribed and not regimen_prescribed.startswith("-- Select") else None,
         "treatment_started": treatment_started,
-        "treatment_not_started_reason": treatment_not_started_reason if treatment_started == "No" else None
+        "treatment_not_started_reason": treatment_not_started_reason if treatment_started == "No" and not treatment_not_started_reason.startswith("-- Select") else None,
+        "treatment_not_started_other": treatment_not_started_other if treatment_not_started_reason == "Other" else None
     }
 
 

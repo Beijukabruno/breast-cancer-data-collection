@@ -471,12 +471,82 @@ def render_cycle_form(patient_id: str, cycle_number: int) -> Dict:
     
     # Conditional reason if No
     chemo_delay_reason = ""
+    chemo_delay_other = ""
     if chemo_on_prescription_day == "No":
-        chemo_delay_reason = st.text_input(
-            "If No, Why?:",
-            key=f"cycle{cycle_number}_chemo_delay_reason",
-            placeholder="Please specify reason..."
+        st.markdown("**If No, Why?:**")
+        delay_options = [
+            "Laboratory Results Not Ready / Delayed",
+            "Low Blood Counts (Neutropenia, Anemia, or Thrombocytopenia)",
+            "Drug Stock-Out or Unavailability",
+            "Financial Barriers on the Day of Treatment",
+            "Clinician or Scheduling Delays",
+            "Patient Late Arrival or Missed Appointment",
+            "Other"
+        ]
+        
+        chemo_delay_reason = st.selectbox(
+            "Select reason for delay:",
+            ["-- Select Reason --"] + delay_options,
+            key=f"cycle{cycle_number}_chemo_delay_reason_select",
+            index=0
         )
+        
+        # If "Other" is selected, show text input
+        if chemo_delay_reason == "Other":
+            chemo_delay_other = st.text_input(
+                "Please specify other reason:",
+                key=f"cycle{cycle_number}_chemo_delay_other",
+                placeholder="Enter specific reason..."
+            )
+    
+    # Was chemotherapy received on scheduled date?
+    st.markdown("**Was chemotherapy received on the scheduled date?**")
+    chemo_on_scheduled_date = st.radio(
+        "Select option:",
+        ["Yes", "No"],
+        key=f"cycle{cycle_number}_chemo_on_scheduled_date",
+        horizontal=True,
+        label_visibility="collapsed",
+        index=None
+    )
+    
+    # Conditional reason if No for scheduled date
+    chemo_schedule_delay_reason = ""
+    chemo_schedule_delay_other = ""
+    if chemo_on_scheduled_date == "No":
+        st.markdown("**If No, Why?:**")
+        schedule_delay_options = [
+            "Patient forgot the appointment",
+            "Missing CBC results",
+            "Low blood counts",
+            "Patient needed blood transfusion",
+            "Patient came earlier",
+            "Chemo drugs stock out",
+            "Health system delays",
+            "Transportation issues",
+            "Financial challenges",
+            "Patient was hospitalized",
+            "Patient underwent surgery",
+            "Patient was unwell and unable to travel",
+            "Patient traveled out of town",
+            "Patient decided to stop treatment",
+            "Other"
+        ]
+        
+        chemo_schedule_delay_reason = st.selectbox(
+            "Select reason for delay:",
+            ["-- Select Reason --"] + schedule_delay_options,
+            key=f"cycle{cycle_number}_chemo_schedule_delay_reason_select",
+            index=0
+        )
+        
+        # If "Other" is selected, show text input
+        if chemo_schedule_delay_reason == "Other":
+            chemo_schedule_delay_other = st.text_input(
+                "Please specify other reason:",
+                key=f"cycle{cycle_number}_chemo_schedule_delay_other",
+                placeholder="Enter specific reason..."
+            )
     
     # Side effects
     st.markdown("**Documented side effects post treatment:**")
@@ -552,12 +622,33 @@ def render_cycle_form(patient_id: str, cycle_number: int) -> Dict:
     
     # Conditional reason for hospitalization
     hospitalization_reason = ""
+    hospitalization_other = ""
     if hospitalization == "Yes":
-        hospitalization_reason = st.text_input(
-            "If yes, specify the reason:",
-            key=f"cycle{cycle_number}_hospitalization_reason",
-            placeholder="Please specify reason..."
+        st.markdown("**If yes, specify the reason:**")
+        hospitalization_options = [
+            "Neutropenic Sepsis",
+            "Severe Anemia",
+            "Severe Nausea, Vomiting, or Dehydration",
+            "Infections",
+            "Severe Pain or Disease-Related Complications",
+            "Mastectomy",
+            "Other"
+        ]
+        
+        hospitalization_reason = st.selectbox(
+            "Select reason for hospitalization:",
+            ["-- Select Reason --"] + hospitalization_options,
+            key=f"cycle{cycle_number}_hospitalization_reason_select",
+            index=0
         )
+        
+        # If "Other" is selected, show text input
+        if hospitalization_reason == "Other":
+            hospitalization_other = st.text_input(
+                "Please specify other reason:",
+                key=f"cycle{cycle_number}_hospitalization_other",
+                placeholder="Enter specific reason..."
+            )
     
     # Return cycle data
     return {
@@ -573,14 +664,19 @@ def render_cycle_form(patient_id: str, cycle_number: int) -> Dict:
             "platelets": platelets
         },
         "chemo_on_prescription_day": chemo_on_prescription_day,
-        "chemo_delay_reason": chemo_delay_reason if chemo_on_prescription_day == "No" else None,
+        "chemo_delay_reason": chemo_delay_reason if chemo_on_prescription_day == "No" and not chemo_delay_reason.startswith("-- Select") else None,
+        "chemo_delay_other": chemo_delay_other if chemo_delay_reason == "Other" else None,
+        "chemo_on_scheduled_date": chemo_on_scheduled_date,
+        "chemo_schedule_delay_reason": chemo_schedule_delay_reason if chemo_on_scheduled_date == "No" and not chemo_schedule_delay_reason.startswith("-- Select") else None,
+        "chemo_schedule_delay_other": chemo_schedule_delay_other if chemo_schedule_delay_reason == "Other" else None,
         "side_effects_present": side_effects_present,
         "side_effects": side_effects if side_effects_present == "Yes" else [],
         "side_effects_other": side_effects_other if "Other" in side_effects else None,
         "patient_condition": patient_condition,
         "condition_other": condition_other if patient_condition == "Other" else None,
         "hospitalization": hospitalization,
-        "hospitalization_reason": hospitalization_reason if hospitalization == "Yes" else None
+        "hospitalization_reason": hospitalization_reason if hospitalization == "Yes" and not hospitalization_reason.startswith("-- Select") else None,
+        "hospitalization_other": hospitalization_other if hospitalization_reason == "Other" else None
     }
 
 
@@ -618,13 +714,30 @@ def render_final_followup_form(patient_id: str) -> Dict:
     
     # Conditional: Why no follow-up
     no_followup_reason = None
+    no_followup_other = None
     if followup_attendance == "No":
         st.markdown("**If No, why?**")
-        no_followup_reason = st.text_area(
-            "Reason for no follow-up",
-            placeholder="Explain why the patient did not come for follow-up...",
-            help="Provide details about why follow-up was missed"
+        followup_reason_options = [
+            "Not captured",
+            "Physical Deterioration or Disease Progression",
+            "Death or Migration",
+            "Other"
+        ]
+        
+        no_followup_reason = st.selectbox(
+            "Select reason:",
+            ["-- Select Reason --"] + followup_reason_options,
+            key="no_followup_reason_select",
+            index=0
         )
+        
+        # If "Other" is selected, show text input
+        if no_followup_reason == "Other":
+            no_followup_other = st.text_area(
+                "Please specify other reason:",
+                placeholder="Explain why the patient did not come for follow-up...",
+                help="Provide details about why follow-up was missed"
+            )
     
     # Comorbidities developed
     st.markdown("**List of any comorbidities developed (you can select multiple):**")
@@ -716,7 +829,8 @@ def render_final_followup_form(patient_id: str) -> Dict:
         "last_review_date": last_review_date.strftime("%Y-%m-%d"),
         "general_condition": general_condition,
         "followup_attendance": followup_attendance,
-        "no_followup_reason": no_followup_reason,
+        "no_followup_reason": no_followup_reason if followup_attendance == "No" and not no_followup_reason.startswith("-- Select") else None,
+        "no_followup_other": no_followup_other if no_followup_reason == "Other" else None,
         "comorbidities_developed": comorbidities_developed,
         "other_comorbidity": other_comorbidity,
         "recurrence": recurrence,
@@ -975,12 +1089,34 @@ def render_linear_baseline_form(districts: List[str]) -> Dict:
     
     # Conditional input for "No" treatment start
     treatment_not_started_reason = ""
+    treatment_not_started_other = ""
     if treatment_started == "No":
-        treatment_not_started_reason = st.text_input(
-            "If No, why?:",
-            key="treatment_not_started_reason",
-            placeholder="Please specify reason..."
+        st.markdown("**If No, why?**")
+        reason_options = [
+            "Physical toll (fear of side effects)",
+            "Fear of Long-term damage", 
+            "Financial / cost barriers",
+            "Distance and access",
+            "Late diagnosis",
+            "Social / family factors",
+            "Older age, existing illnesses, or weak health",
+            "Other"
+        ]
+        
+        treatment_not_started_reason = st.selectbox(
+            "Select reason:",
+            ["-- Select Reason --"] + reason_options,
+            key="treatment_not_started_reason_select",
+            index=0
         )
+        
+        # If "Other" is selected, show text input
+        if treatment_not_started_reason == "Other":
+            treatment_not_started_other = st.text_input(
+                "Please specify other reason:",
+                key="treatment_not_started_other",
+                placeholder="Enter specific reason..."
+            )
     
     # Return all collected data
     return {
@@ -1008,7 +1144,8 @@ def render_linear_baseline_form(districts: List[str]) -> Dict:
         "chemo_cycles_prescribed": chemo_cycles,
         "regimen_prescribed": regimen_prescribed if regimen_prescribed and not regimen_prescribed.startswith("-- Select") else None,
         "treatment_started": treatment_started,
-        "treatment_not_started_reason": treatment_not_started_reason if treatment_started == "No" else None
+        "treatment_not_started_reason": treatment_not_started_reason if treatment_started == "No" and not treatment_not_started_reason.startswith("-- Select") else None,
+        "treatment_not_started_other": treatment_not_started_other if treatment_not_started_reason == "Other" else None
     }
 
 
@@ -1093,8 +1230,10 @@ def validate_final_followup_data(followup_data):
             return False
     
     # Additional validation for conditional fields
-    if followup_data.get('followup_attendance') == 'No' and not followup_data.get('no_followup_reason'):
-        return False
+    if followup_data.get('followup_attendance') == 'No':
+        no_followup_reason = followup_data.get('no_followup_reason')
+        if not no_followup_reason or no_followup_reason.startswith("-- Select"):
+            return False
     
     if followup_data.get('recurrence') == 'Yes' and not followup_data.get('recurrence_date'):
         return False
