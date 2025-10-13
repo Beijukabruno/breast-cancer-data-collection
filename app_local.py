@@ -986,12 +986,23 @@ def render_linear_baseline_form(districts: List[str]) -> Dict:
     
     # 7. Initial diagnosis
     diagnosis_options = ["-- Select Initial Diagnosis --"] + Config.DIAGNOSIS_OPTIONS
+
     initial_diagnosis = st.selectbox(
         "7. Initial diagnosis:",
         diagnosis_options,
         key="initial_diagnosis",
         index=0  # Default to placeholder
     )
+
+    # If "Other" is selected, show text input
+    if initial_diagnosis == "Other":
+        initial_diagnosis_other = st.text_input(
+            "Please specify initial diagnosis:",
+            key="initial_diagnosis_other",
+            placeholder="Enter specific diagnosis..."
+        )
+    else:
+        initial_diagnosis_other = None
     
     # 8. Immunohistochemistry results
     st.markdown("**8. Immunohistochemistry results present:**")
@@ -1159,7 +1170,7 @@ def render_linear_baseline_form(districts: List[str]) -> Dict:
         "income_source": income_source,
         "income_other": income_other if income_source == "Other" else None,
         "district": district if district and not district.startswith("-- Select") else None,
-        "initial_diagnosis": initial_diagnosis if initial_diagnosis and not initial_diagnosis.startswith("-- Select") else None,
+    "initial_diagnosis": (f"Other: {initial_diagnosis_other}" if initial_diagnosis == "Other" and initial_diagnosis_other else initial_diagnosis if initial_diagnosis and not initial_diagnosis.startswith("-- Select") else None),
         "immunohisto_present": immunohisto_present,
         "immunohisto_results": immunohisto_results if immunohisto_present == "Yes" else [],
         "immunohisto_other": immunohisto_other if "Other" in immunohisto_results else None,
