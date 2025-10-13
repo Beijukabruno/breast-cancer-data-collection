@@ -348,8 +348,13 @@ def render_dynamic_medications(cycle_num: int) -> List[Dict]:
                     key=f"med_custom_{cycle_num}_{i}",
                     placeholder="Enter medication name"
                 )
+                # Store the custom name in the session state
+                st.session_state[med_key][i]["custom_name"] = med_name
+                med_name = f"Other: {med_name}" if med_name else ""
             else:
                 med_name = selected_med if not selected_med.startswith("-- Select") else ""
+                # Clear any stored custom name
+                st.session_state[med_key][i].pop("custom_name", None)
         
         with col2:
             med_dose = st.text_input(
@@ -403,6 +408,14 @@ def render_cycle_form(patient_id: str, cycle_number: int) -> Dict:
         index=None,
         help="Select the chemotherapy regimen prescribed for this treatment cycle"
     )
+    
+    # Add text input for other regimen if "Other" is selected
+    if regimen_prescribed == "Other":
+        regimen_other = st.text_input(
+            "Please specify the regimen:",
+            key=f"cycle{cycle_number}_regimen_other",
+            help="Enter the specific regimen prescribed"
+        )
     
     # Prescription date
     prescription_date = st.date_input(
@@ -652,10 +665,18 @@ def render_cycle_form(patient_id: str, cycle_number: int) -> Dict:
             )
     
     # Return cycle data
+    # Handle regimen prescribed value
+    final_regimen = None
+    if regimen_prescribed and not regimen_prescribed.startswith("-- Select"):
+        if regimen_prescribed == "Other" and 'regimen_other' in locals():
+            final_regimen = f"Other: {regimen_other}"
+        else:
+            final_regimen = regimen_prescribed
+
     return {
         "cycle_number": cycle_number,
         "patient_id": patient_id,
-        "regimen_prescribed": regimen_prescribed if regimen_prescribed and not regimen_prescribed.startswith("-- Select") else None,
+        "regimen_prescribed": final_regimen,
         "prescription_date": prescription_date.strftime("%Y-%m-%d"),
         "medications": medications,
         "chemo_received_date": chemo_received_date.strftime("%Y-%m-%d"),
@@ -1268,6 +1289,11 @@ def validate_cycle_data(cycle_data):
         if field not in cycle_data or not cycle_data[field]:
             return False
     
+    # Validate regimen when "Other" is selected
+    regimen = cycle_data.get('regimen_prescribed')
+    if regimen and regimen.startswith("Other:") and len(regimen) <= 7:  # "Other: " is 7 characters
+        return False
+    
     # Validate medications
     medications = cycle_data.get('medications', [])
     if not medications:
@@ -1275,6 +1301,9 @@ def validate_cycle_data(cycle_data):
     
     for med in medications:
         if not med.get('name') or not med.get('dose'):
+            return False
+        # Validate custom medication names
+        if med.get('name', '').startswith('Other:') and len(med.get('name', '')) <= 7:  # "Other: " is 7 characters
             return False
     
     return True
