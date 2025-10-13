@@ -35,8 +35,8 @@ def render_linear_baseline_form(districts: List[str]) -> Dict:
 
 class Config:
     """Application configuration constants"""
-    STUDY_START_DATE = date(2016, 1, 1)
-    STUDY_END_DATE = date(2018, 12, 31)
+    STUDY_START_DATE = date(1900, 1, 1)  # Effectively no start date restriction
+    STUDY_END_DATE = date(2100, 12, 31)  # Effectively no end date restriction
     DEFAULT_DATA_DIR = "data"
     
     # Form options
@@ -86,11 +86,12 @@ class Config:
     
     IMMUNOHISTO_OPTIONS = [
         "ER-positive (ER+)",
-        "PR-positive (PR+)", 
+        "ER-negative (ER-)",
+        "PR-positive (PR+)",
+        "PR-negative (PR-)",
         "HR-positive (HR+)",
         "HR-negative (HR-)",
         "HER2-positive (HER2+)",
-        "ER-negative (ER-)",
         "HER2-negative (HER2-)"
     ]
     
@@ -128,10 +129,10 @@ def load_uganda_districts() -> List[str]:
             districts = [line.strip() for line in f.readlines() if line.strip()]
         return sorted(districts)
     except FileNotFoundError:
-        st.error("⚠️ districts.txt file not found. Please ensure the file exists in the same directory.")
+        st.error("districts.txt file not found. Please ensure the file exists in the same directory.")
         return ["File not found - Please check districts.txt"]
     except Exception as e:
-        st.error(f"⚠️ Error loading districts: {str(e)}")
+        st.error(f"Error loading districts: {str(e)}")
         return ["Error loading districts"]
 
 
@@ -147,6 +148,8 @@ def initialize_session_state() -> None:
         st.session_state.baseline_completed = False
     if 'current_cycle' not in st.session_state:
         st.session_state.current_cycle = 0
+    if 'show_final_followup' not in st.session_state:
+        st.session_state.show_final_followup = False
 
 
 def clear_form_fields() -> None:
@@ -256,7 +259,8 @@ def save_patient_data(data: Dict, data_type: str = "baseline") -> tuple[bool, st
             patient_data = {
                 "patient_id": data['patient_id'],
                 "baseline_data": {},
-                "treatment_cycles": []
+                "treatment_cycles": [],
+                "final_followup": {}
             }
         
         if data_type == "baseline":
@@ -272,6 +276,8 @@ def save_patient_data(data: Dict, data_type: str = "baseline") -> tuple[bool, st
             else:
                 # Add new cycle
                 patient_data["treatment_cycles"].append(data)
+        elif data_type == "final_followup":
+            patient_data["final_followup"] = data
         
         # Save updated data
         with open(main_filename, "w") as f:
@@ -363,7 +369,7 @@ def render_dynamic_medications(cycle_num: int) -> List[Dict]:
         
         with col4:
             if len(st.session_state[med_key]) > 1:
-                if st.button("🗑️", key=f"remove_med_{cycle_num}_{i}", help="Remove medication"):
+                if st.button("Remove", key=f"remove_med_{cycle_num}_{i}", help="Remove medication"):
                     st.session_state[med_key].pop(i)
                     st.rerun()
         
@@ -383,9 +389,9 @@ def render_dynamic_medications(cycle_num: int) -> List[Dict]:
     return medications
 
 
-def render_cycle_1_form(patient_id: str) -> Dict:
-    """Render Chemotherapy Treatment Cycle 1 form"""
-    st.header("Chemotherapy Treatment Cycle 1")
+def render_cycle_form(patient_id: str, cycle_number: int) -> Dict:
+    """Render Chemotherapy Treatment Cycle form for any cycle number"""
+    st.header(f"Chemotherapy Treatment Cycle {cycle_number}")
     st.markdown("---")
     
     # Prescribed regimen for this cycle
@@ -393,7 +399,7 @@ def render_cycle_1_form(patient_id: str) -> Dict:
     regimen_prescribed = st.selectbox(
         "Prescribed regimen for this cycle:",
         regimen_options,
-        key="cycle1_regimen_prescribed",
+        key=f"cycle{cycle_number}_regimen_prescribed",
         index=None,
         help="Select the chemotherapy regimen prescribed for this treatment cycle"
     )
@@ -404,11 +410,11 @@ def render_cycle_1_form(patient_id: str) -> Dict:
         value=date(2017, 7, 1),
         min_value=Config.STUDY_START_DATE,
         max_value=Config.STUDY_END_DATE,
-        key="cycle1_prescription_date"
+        key=f"cycle{cycle_number}_prescription_date"
     )
     
     # Dynamic medications
-    medications = render_dynamic_medications(1)
+    medications = render_dynamic_medications(cycle_number)
     
     # Date chemotherapy received
     chemo_received_date = st.date_input(
@@ -416,7 +422,7 @@ def render_cycle_1_form(patient_id: str) -> Dict:
         value=date(2017, 7, 1),
         min_value=Config.STUDY_START_DATE,
         max_value=Config.STUDY_END_DATE,
-        key="cycle1_chemo_received_date"
+        key=f"cycle{cycle_number}_chemo_received_date"
     )
     
     # Laboratory values
@@ -429,7 +435,7 @@ def render_cycle_1_form(patient_id: str) -> Dict:
             min_value=0.0,
             max_value=50000.0,
             step=100.0,
-            key="cycle1_wbc",
+            key=f"cycle{cycle_number}_wbc",
             help="White Blood Cell count"
         )
     
@@ -439,7 +445,7 @@ def render_cycle_1_form(patient_id: str) -> Dict:
             min_value=0.0,
             max_value=25.0,
             step=0.1,
-            key="cycle1_hemoglobin",
+            key=f"cycle{cycle_number}_hemoglobin",
             help="Hemoglobin level (g/dL)"
         )
     
@@ -449,7 +455,7 @@ def render_cycle_1_form(patient_id: str) -> Dict:
             min_value=0,
             max_value=1000000,
             step=1000,
-            key="cycle1_platelets",
+            key=f"cycle{cycle_number}_platelets",
             help="Platelet count"
         )
     
@@ -458,7 +464,7 @@ def render_cycle_1_form(patient_id: str) -> Dict:
     chemo_on_prescription_day = st.radio(
         "Select option:",
         ["Yes", "No"],
-        key="cycle1_chemo_on_prescription_day",
+        key=f"cycle{cycle_number}_chemo_on_prescription_day",
         horizontal=True,
         label_visibility="collapsed",
         index=None
@@ -466,19 +472,89 @@ def render_cycle_1_form(patient_id: str) -> Dict:
     
     # Conditional reason if No
     chemo_delay_reason = ""
+    chemo_delay_other = ""
     if chemo_on_prescription_day == "No":
-        chemo_delay_reason = st.text_input(
-            "If No, Why?:",
-            key="cycle1_chemo_delay_reason",
-            placeholder="Please specify reason..."
+        st.markdown("**If No, Why?:**")
+        delay_options = [
+            "Laboratory Results Not Ready / Delayed",
+            "Low Blood Counts (Neutropenia, Anemia, or Thrombocytopenia)",
+            "Drug Stock-Out or Unavailability",
+            "Financial Barriers on the Day of Treatment",
+            "Clinician or Scheduling Delays",
+            "Patient Late Arrival or Missed Appointment",
+            "Other"
+        ]
+        
+        chemo_delay_reason = st.selectbox(
+            "Select reason for delay:",
+            ["-- Select Reason --"] + delay_options,
+            key=f"cycle{cycle_number}_chemo_delay_reason_select",
+            index=0
         )
+        
+        # If "Other" is selected, show text input
+        if chemo_delay_reason == "Other":
+            chemo_delay_other = st.text_input(
+                "Please specify other reason:",
+                key=f"cycle{cycle_number}_chemo_delay_other",
+                placeholder="Enter specific reason..."
+            )
+    
+    # Was chemotherapy received on scheduled date?
+    st.markdown("**Was chemotherapy received on the scheduled date?**")
+    chemo_on_scheduled_date = st.radio(
+        "Select option:",
+        ["Yes", "No"],
+        key=f"cycle{cycle_number}_chemo_on_scheduled_date",
+        horizontal=True,
+        label_visibility="collapsed",
+        index=None
+    )
+    
+    # Conditional reason if No for scheduled date
+    chemo_schedule_delay_reason = ""
+    chemo_schedule_delay_other = ""
+    if chemo_on_scheduled_date == "No":
+        st.markdown("**If No, Why?:**")
+        schedule_delay_options = [
+            "Patient forgot the appointment",
+            "Missing CBC results",
+            "Low blood counts",
+            "Patient needed blood transfusion",
+            "Patient came earlier",
+            "Chemo drugs stock out",
+            "Health system delays",
+            "Transportation issues",
+            "Financial challenges",
+            "Patient was hospitalized",
+            "Patient underwent surgery",
+            "Patient was unwell and unable to travel",
+            "Patient traveled out of town",
+            "Patient decided to stop treatment",
+            "Other"
+        ]
+        
+        chemo_schedule_delay_reason = st.selectbox(
+            "Select reason for delay:",
+            ["-- Select Reason --"] + schedule_delay_options,
+            key=f"cycle{cycle_number}_chemo_schedule_delay_reason_select",
+            index=0
+        )
+        
+        # If "Other" is selected, show text input
+        if chemo_schedule_delay_reason == "Other":
+            chemo_schedule_delay_other = st.text_input(
+                "Please specify other reason:",
+                key=f"cycle{cycle_number}_chemo_schedule_delay_other",
+                placeholder="Enter specific reason..."
+            )
     
     # Side effects
     st.markdown("**Documented side effects post treatment:**")
     side_effects_present = st.radio(
         "Are there documented side effects?",
         ["Yes", "No"],
-        key="cycle1_side_effects_present",
+        key=f"cycle{cycle_number}_side_effects_present",
         horizontal=True,
         index=None
     )
@@ -491,26 +567,26 @@ def render_cycle_1_form(patient_id: str) -> Dict:
         col1, col2, col3, col4, col5, col6 = st.columns(6)
         
         with col1:
-            if st.checkbox("Nausea", key="cycle1_nausea"):
+            if st.checkbox("Nausea", key=f"cycle{cycle_number}_nausea"):
                 side_effects.append("Nausea")
         with col2:
-            if st.checkbox("Fatigue", key="cycle1_fatigue"):
+            if st.checkbox("Fatigue", key=f"cycle{cycle_number}_fatigue"):
                 side_effects.append("Fatigue")
         with col3:
-            if st.checkbox("Vomiting", key="cycle1_vomiting"):
+            if st.checkbox("Vomiting", key=f"cycle{cycle_number}_vomiting"):
                 side_effects.append("Vomiting")
         with col4:
-            if st.checkbox("Neuropathy", key="cycle1_neuropathy"):
+            if st.checkbox("Neuropathy", key=f"cycle{cycle_number}_neuropathy"):
                 side_effects.append("Neuropathy")
         with col5:
-            if st.checkbox("None", key="cycle1_none_side_effects"):
+            if st.checkbox("None", key=f"cycle{cycle_number}_none_side_effects"):
                 side_effects.append("None")
         with col6:
-            if st.checkbox("Other", key="cycle1_other_side_effects"):
+            if st.checkbox("Other", key=f"cycle{cycle_number}_other_side_effects"):
                 side_effects.append("Other")
                 side_effects_other = st.text_input(
                     "Specify other side effects:",
-                    key="cycle1_side_effects_other",
+                    key=f"cycle{cycle_number}_side_effects_other",
                     placeholder="Please specify..."
                 )
     
@@ -519,7 +595,7 @@ def render_cycle_1_form(patient_id: str) -> Dict:
     patient_condition = st.radio(
         "Select condition:",
         Config.CONDITION_OPTIONS,
-        key="cycle1_patient_condition",
+        key=f"cycle{cycle_number}_patient_condition",
         horizontal=True,
         label_visibility="collapsed",
         index=None
@@ -530,7 +606,7 @@ def render_cycle_1_form(patient_id: str) -> Dict:
     if patient_condition == "Other":
         condition_other = st.text_input(
             "Specify other condition:",
-            key="cycle1_condition_other",
+            key=f"cycle{cycle_number}_condition_other",
             placeholder="Please specify..."
         )
     
@@ -539,7 +615,7 @@ def render_cycle_1_form(patient_id: str) -> Dict:
     hospitalization = st.radio(
         "Select option:",
         ["Yes", "No"],
-        key="cycle1_hospitalization",
+        key=f"cycle{cycle_number}_hospitalization",
         horizontal=True,
         label_visibility="collapsed",
         index=None
@@ -547,16 +623,37 @@ def render_cycle_1_form(patient_id: str) -> Dict:
     
     # Conditional reason for hospitalization
     hospitalization_reason = ""
+    hospitalization_other = ""
     if hospitalization == "Yes":
-        hospitalization_reason = st.text_input(
-            "If yes, specify the reason:",
-            key="cycle1_hospitalization_reason",
-            placeholder="Please specify reason..."
+        st.markdown("**If yes, specify the reason:**")
+        hospitalization_options = [
+            "Neutropenic Sepsis",
+            "Severe Anemia",
+            "Severe Nausea, Vomiting, or Dehydration",
+            "Infections",
+            "Severe Pain or Disease-Related Complications",
+            "Mastectomy",
+            "Other"
+        ]
+        
+        hospitalization_reason = st.selectbox(
+            "Select reason for hospitalization:",
+            ["-- Select Reason --"] + hospitalization_options,
+            key=f"cycle{cycle_number}_hospitalization_reason_select",
+            index=0
         )
+        
+        # If "Other" is selected, show text input
+        if hospitalization_reason == "Other":
+            hospitalization_other = st.text_input(
+                "Please specify other reason:",
+                key=f"cycle{cycle_number}_hospitalization_other",
+                placeholder="Enter specific reason..."
+            )
     
     # Return cycle data
     return {
-        "cycle_number": 1,
+        "cycle_number": cycle_number,
         "patient_id": patient_id,
         "regimen_prescribed": regimen_prescribed if regimen_prescribed and not regimen_prescribed.startswith("-- Select") else None,
         "prescription_date": prescription_date.strftime("%Y-%m-%d"),
@@ -568,14 +665,180 @@ def render_cycle_1_form(patient_id: str) -> Dict:
             "platelets": platelets
         },
         "chemo_on_prescription_day": chemo_on_prescription_day,
-        "chemo_delay_reason": chemo_delay_reason if chemo_on_prescription_day == "No" else None,
+        "chemo_delay_reason": chemo_delay_reason if chemo_on_prescription_day == "No" and not chemo_delay_reason.startswith("-- Select") else None,
+        "chemo_delay_other": chemo_delay_other if chemo_delay_reason == "Other" else None,
+        "chemo_on_scheduled_date": chemo_on_scheduled_date,
+        "chemo_schedule_delay_reason": chemo_schedule_delay_reason if chemo_on_scheduled_date == "No" and not chemo_schedule_delay_reason.startswith("-- Select") else None,
+        "chemo_schedule_delay_other": chemo_schedule_delay_other if chemo_schedule_delay_reason == "Other" else None,
         "side_effects_present": side_effects_present,
         "side_effects": side_effects if side_effects_present == "Yes" else [],
         "side_effects_other": side_effects_other if "Other" in side_effects else None,
         "patient_condition": patient_condition,
         "condition_other": condition_other if patient_condition == "Other" else None,
         "hospitalization": hospitalization,
-        "hospitalization_reason": hospitalization_reason if hospitalization == "Yes" else None
+        "hospitalization_reason": hospitalization_reason if hospitalization == "Yes" and not hospitalization_reason.startswith("-- Select") else None,
+        "hospitalization_other": hospitalization_other if hospitalization_reason == "Other" else None
+    }
+
+
+def render_final_followup_form(patient_id: str) -> Dict:
+    """Render the Final Follow-Up Visit form"""
+    st.header("Recurrence-Free Survival and Outcomes (Final Follow-Up Visit)")
+    st.markdown("---")
+    
+    # Last recorded review date
+    st.markdown("**Last recorded review date:**")
+    last_review_date = st.date_input(
+        "Review Date",
+        value=date.today(),
+        min_value=Config.STUDY_START_DATE,
+        max_value=Config.STUDY_END_DATE,
+        help="Select the date of the last follow-up visit"
+    )
+    
+    # General condition
+    st.markdown("**What was the general condition of the patient on the last visit?**")
+    general_condition = st.text_area(
+        "General Condition",
+        placeholder="Describe the patient's general condition...",
+        help="Enter details about the patient's overall condition during the last visit"
+    )
+    
+    # Follow-up attendance
+    st.markdown("**Did the patient come back for follow up?**")
+    followup_attendance = st.radio(
+        "Follow-up Attendance",
+        options=["Yes", "No"],
+        index=None,
+        help="Select whether the patient attended follow-up visits"
+    )
+    
+    # Conditional: Why no follow-up
+    no_followup_reason = None
+    no_followup_other = None
+    if followup_attendance == "No":
+        st.markdown("**If No, why?**")
+        followup_reason_options = [
+            "Not captured",
+            "Physical Deterioration or Disease Progression",
+            "Death or Migration",
+            "Other"
+        ]
+        
+        no_followup_reason = st.selectbox(
+            "Select reason:",
+            ["-- Select Reason --"] + followup_reason_options,
+            key="no_followup_reason_select",
+            index=0
+        )
+        
+        # If "Other" is selected, show text input
+        if no_followup_reason == "Other":
+            no_followup_other = st.text_area(
+                "Please specify other reason:",
+                placeholder="Explain why the patient did not come for follow-up...",
+                help="Provide details about why follow-up was missed"
+            )
+    
+    # Comorbidities developed
+    st.markdown("**List of any comorbidities developed (you can select multiple):**")
+    
+    # Create checkboxes in a grid layout
+    comorbidities_developed = []
+    other_comorbidity = None
+    
+    col1, col2, col3, col4, col5 = st.columns(5)
+    
+    with col1:
+        if st.checkbox("Diabetes", key="followup_diabetes"):
+            comorbidities_developed.append("Diabetes")
+    
+    with col2:
+        if st.checkbox("Hypertension", key="followup_hypertension"):
+            comorbidities_developed.append("Hypertension")
+    
+    with col3:
+        if st.checkbox("HIV", key="followup_hiv"):
+            comorbidities_developed.append("HIV")
+    
+    with col4:
+        if st.checkbox("None captured", key="followup_none_captured"):
+            comorbidities_developed.append("None captured")
+    
+    with col5:
+        if st.checkbox("Other", key="followup_other_comorbidity"):
+            comorbidities_developed.append("Other")
+            other_comorbidity = st.text_input(
+                "Specify other comorbidity:",
+                placeholder="Specify the other comorbidity...",
+                help="Enter details about the other comorbidity"
+            )
+    
+    # Breast cancer recurrence
+    st.markdown("**Has the patient developed breast cancer recurrence?**")
+    recurrence = st.radio(
+        "Breast Cancer Recurrence",
+        options=["No", "Yes"],
+        index=None,
+        help="Select whether breast cancer recurrence was detected"
+    )
+    
+    # Conditional: Recurrence date
+    recurrence_date = None
+    if recurrence == "Yes":
+        st.markdown("**If Yes, on what date was the recurrence confirmed?**")
+        recurrence_date = st.date_input(
+            "Recurrence Confirmation Date",
+            value=date.today(),
+            min_value=Config.STUDY_START_DATE,
+            max_value=Config.STUDY_END_DATE,
+            help="Select the date when recurrence was confirmed"
+        )
+    
+    # Patient status
+    st.markdown("**Is the patient still alive at last follow-up?**")
+    patient_status = st.radio(
+        "Patient Status",
+        options=["Alive", "Deceased"],
+        index=None,
+        help="Select the patient's vital status at last follow-up"
+    )
+    
+    # Conditional: Death details
+    death_date = None
+    death_cause = None
+    if patient_status == "Deceased":
+        st.markdown("**Date of death if the patient passed away:**")
+        death_date = st.date_input(
+            "Date of Death",
+            value=date.today(),
+            min_value=Config.STUDY_START_DATE,
+            max_value=Config.STUDY_END_DATE,
+            help="Select the date when the patient passed away"
+        )
+        
+        st.markdown("**Primary cause of death:**")
+        death_cause = st.text_area(
+            "Primary Cause of Death",
+            placeholder="Describe the primary cause of death...",
+            help="Enter the primary cause of death"
+        )
+    
+    # Return final follow-up data
+    return {
+        "patient_id": patient_id,
+        "last_review_date": last_review_date.strftime("%Y-%m-%d"),
+        "general_condition": general_condition,
+        "followup_attendance": followup_attendance,
+        "no_followup_reason": no_followup_reason if followup_attendance == "No" and not no_followup_reason.startswith("-- Select") else None,
+        "no_followup_other": no_followup_other if no_followup_reason == "Other" else None,
+        "comorbidities_developed": comorbidities_developed,
+        "other_comorbidity": other_comorbidity,
+        "recurrence": recurrence,
+        "recurrence_date": recurrence_date.strftime("%Y-%m-%d") if recurrence_date else None,
+        "patient_status": patient_status,
+        "death_date": death_date.strftime("%Y-%m-%d") if death_date else None,
+        "death_cause": death_cause
     }
 
 
@@ -592,7 +855,7 @@ def render_page_header() -> None:
 def render_data_storage_config() -> None:
     """Render data storage configuration in sidebar"""
     with st.sidebar:
-        st.header("⚙️ Settings")
+        st.header("Settings")
         data_dir = st.text_input(
             "Data Storage Directory",
             value=st.session_state.data_directory,
@@ -645,7 +908,7 @@ def render_linear_baseline_form(districts: List[str]) -> Dict:
             min_value=Config.STUDY_START_DATE,
             max_value=Config.STUDY_END_DATE,
             key="date_admitted",
-            help="Select date between 2016-2018"
+            help="Select date between 2016-2025"
         )
     
     # 3. Education Level
@@ -814,6 +1077,15 @@ def render_linear_baseline_form(districts: List[str]) -> Dict:
         index=0  # Default to placeholder
     )
     
+    # Conditional input for "Other" regimen
+    regimen_other = ""
+    if regimen_prescribed == "Other":
+        regimen_other = st.text_input(
+            "Please specify other regimen:",
+            key="regimen_other",
+            placeholder="Enter the specific regimen..."
+        )
+    
     # 13. Treatment start status
     st.markdown("**13. Did the patient start treatment:**")
     treatment_started = st.radio(
@@ -827,12 +1099,34 @@ def render_linear_baseline_form(districts: List[str]) -> Dict:
     
     # Conditional input for "No" treatment start
     treatment_not_started_reason = ""
+    treatment_not_started_other = ""
     if treatment_started == "No":
-        treatment_not_started_reason = st.text_input(
-            "If No, why?:",
-            key="treatment_not_started_reason",
-            placeholder="Please specify reason..."
+        st.markdown("**If No, why?**")
+        reason_options = [
+            "Physical toll (fear of side effects)",
+            "Fear of Long-term damage", 
+            "Financial / cost barriers",
+            "Distance and access",
+            "Late diagnosis",
+            "Social / family factors",
+            "Older age, existing illnesses, or weak health",
+            "Other"
+        ]
+        
+        treatment_not_started_reason = st.selectbox(
+            "Select reason:",
+            ["-- Select Reason --"] + reason_options,
+            key="treatment_not_started_reason_select",
+            index=0
         )
+        
+        # If "Other" is selected, show text input
+        if treatment_not_started_reason == "Other":
+            treatment_not_started_other = st.text_input(
+                "Please specify other reason:",
+                key="treatment_not_started_other",
+                placeholder="Enter specific reason..."
+            )
     
     # Return all collected data
     return {
@@ -859,8 +1153,10 @@ def render_linear_baseline_form(districts: List[str]) -> Dict:
         },
         "chemo_cycles_prescribed": chemo_cycles,
         "regimen_prescribed": regimen_prescribed if regimen_prescribed and not regimen_prescribed.startswith("-- Select") else None,
+        "regimen_other": regimen_other if regimen_prescribed == "Other" else None,
         "treatment_started": treatment_started,
-        "treatment_not_started_reason": treatment_not_started_reason if treatment_started == "No" else None
+        "treatment_not_started_reason": treatment_not_started_reason if treatment_started == "No" and not treatment_not_started_reason.startswith("-- Select") else None,
+        "treatment_not_started_other": treatment_not_started_other if treatment_not_started_reason == "Other" else None
     }
 
 
@@ -870,30 +1166,94 @@ def render_cycle_actions(cycle_data, cycle_number):
     col1, col2, col3 = st.columns([2, 2, 1])
     
     with col1:
-        if st.button("💾 Save Cycle", type="primary", use_container_width=True):
+        if st.button("Save Cycle", type="primary", use_container_width=True):
             if validate_cycle_data(cycle_data):
                 # Save cycle data
                 success, result = save_patient_data(cycle_data, data_type='cycle')
                 if success:
-                    st.success(f"✅ Treatment Cycle {cycle_number} data saved successfully!")
+                    st.success(f"Treatment Cycle {cycle_number} data saved successfully!")
                     # Reset current cycle to go back to cycle management
                     st.session_state.current_cycle = 0
                     time.sleep(1)
                     st.rerun()
                 else:
-                    st.error(f"❌ Failed to save cycle data: {result}")
+                    st.error(f"Failed to save cycle data: {result}")
             else:
-                st.error("❌ Please fill in all required fields before saving.")
+                st.error("Please fill in all required fields before saving.")
     
     with col2:
-        if st.button("🚫 Cancel Cycle", use_container_width=True):
+        if st.button("Cancel Cycle", use_container_width=True):
             st.session_state.current_cycle = 0
             st.rerun()
     
     with col3:
-        if st.button("🗑️", help="Clear form", use_container_width=True):
+        if st.button("Clear", help="Clear form", use_container_width=True):
             clear_form_fields()
             st.rerun()
+
+
+def render_final_followup_actions(followup_data):
+    """Render action buttons for final follow-up form"""
+    st.markdown("---")
+    col1, col2, col3 = st.columns([2, 2, 1])
+    
+    with col1:
+        if st.button("Save Complete Record", type="primary", use_container_width=True):
+            if validate_final_followup_data(followup_data):
+                # Save final follow-up data
+                success, result = save_patient_data(followup_data, data_type='final_followup')
+                if success:
+                    st.success("Complete patient record saved successfully!")
+                    st.balloons()
+                    # Reset all session state for new patient
+                    st.session_state.baseline_completed = False
+                    st.session_state.current_patient_id = None
+                    st.session_state.current_cycle = 0
+                    st.session_state.show_final_followup = False
+                    time.sleep(2)
+                    st.rerun()
+                else:
+                    st.error(f"Failed to save final follow-up data: {result}")
+            else:
+                st.error("Please fill in all required fields before saving.")
+    
+    with col2:
+        if st.button("Back to Cycles", use_container_width=True):
+            st.session_state.show_final_followup = False
+            st.rerun()
+    
+    with col3:
+        if st.button("Clear", help="Clear form", use_container_width=True):
+            # Clear final follow-up form fields
+            st.rerun()
+
+
+def validate_final_followup_data(followup_data):
+    """Validate final follow-up form data"""
+    if not followup_data:
+        return False
+    
+    # Check required fields
+    required_fields = ['last_review_date', 'general_condition', 'followup_attendance', 'patient_status']
+    
+    for field in required_fields:
+        if field not in followup_data or not followup_data[field]:
+            return False
+    
+    # Additional validation for conditional fields
+    if followup_data.get('followup_attendance') == 'No':
+        no_followup_reason = followup_data.get('no_followup_reason')
+        if not no_followup_reason or no_followup_reason.startswith("-- Select"):
+            return False
+    
+    if followup_data.get('recurrence') == 'Yes' and not followup_data.get('recurrence_date'):
+        return False
+    
+    if followup_data.get('patient_status') == 'Deceased':
+        if not followup_data.get('death_date') or not followup_data.get('death_cause'):
+            return False
+    
+    return True
 
 
 def validate_cycle_data(cycle_data):
@@ -927,19 +1287,19 @@ def render_form_actions(form_data: Dict) -> None:
     col1, col2 = st.columns([3, 1])
     
     with col1:
-        if st.button("💾 Save Baseline Data", type="primary", use_container_width=True):
+        if st.button("Save Baseline Data", type="primary", use_container_width=True):
             # Validate form data
             error_msg = validate_form_data(form_data)
             
             if error_msg:
-                st.error(f"❌ {error_msg}")
+                st.error(f"{error_msg}")
             else:
                 # Save data
                 success, result = save_patient_data(form_data, "baseline")
                 
                 if success:
-                    st.success(f"✅ Baseline data for Patient {form_data['patient_id']} saved successfully!")
-                    st.success(f"📁 File saved to: {result}")
+                    st.success(f"Baseline data for Patient {form_data['patient_id']} saved successfully!")
+                    st.success(f"File saved to: {result}")
                     
                     # Update session state
                     st.session_state.patient_data = form_data
@@ -948,7 +1308,7 @@ def render_form_actions(form_data: Dict) -> None:
                     st.session_state.current_cycle = 0
                     
                     # Show success metrics
-                    with st.expander("📋 Saved Data Summary", expanded=True):
+                    with st.expander("Saved Data Summary", expanded=True):
                         col_a, col_b = st.columns(2)
                         with col_a:
                             st.metric("Patient ID", form_data['patient_id'])
@@ -961,10 +1321,10 @@ def render_form_actions(form_data: Dict) -> None:
                     
                     st.rerun()  # Refresh to show cycle options
                 else:
-                    st.error(f"❌ Error saving data: {result}")
+                    st.error(f"Error saving data: {result}")
     
     with col2:
-        if st.button("🔄 Clear Form", use_container_width=True):
+        if st.button("Clear Form", use_container_width=True):
             clear_form_fields()
             st.rerun()
 
@@ -1000,59 +1360,82 @@ def main():
         render_form_actions(form_data)
     else:
         # Baseline completed - show cycle management
-        st.success(f"✅ Baseline data completed for Patient {st.session_state.current_patient_id}")
+        st.success(f"Baseline data completed for Patient {st.session_state.current_patient_id}")
         
         # Load patient data to check existing cycles
         patient_data = load_patient_data(st.session_state.current_patient_id)
         existing_cycles = len(patient_data.get("treatment_cycles", []))
         
-        st.markdown("---")
-        st.subheader("🔄 Treatment Cycles Management")
+        # Debug information
+        with st.expander("Debug Info", expanded=False):
+            st.write("**Patient Data:**", patient_data)
+            st.write("**Existing Cycles Count:**", existing_cycles)
+            st.write("**Treatment Cycles:**", patient_data.get("treatment_cycles", []))
         
-        col1, col2, col3 = st.columns([2, 2, 1])
+        st.markdown("---")
+        st.subheader("Treatment Cycles Management")
+        
+        col1, col2, col3, col4 = st.columns([2, 2, 1, 1])
         
         with col1:
             st.metric("Patient ID", st.session_state.current_patient_id)
         with col2:
             st.metric("Completed Cycles", existing_cycles)
         with col3:
-            if st.button("🔄 New Patient", help="Start with a new patient"):
+            if st.button("New Patient", help="Start with a new patient"):
                 # Reset session state
                 st.session_state.baseline_completed = False
                 st.session_state.current_patient_id = None
                 st.session_state.current_cycle = 0
+                st.session_state.show_final_followup = False
                 clear_form_fields()
                 st.rerun()
+        with col4:
+            if st.button("Clear Data", help="Clear all data for this patient", type="secondary"):
+                import os
+                try:
+                    sanitized_id = sanitize_patient_id(st.session_state.current_patient_id)
+                    patient_folder = os.path.join(st.session_state.data_directory, f"patient_{sanitized_id}")
+                    if os.path.exists(patient_folder):
+                        import shutil
+                        shutil.rmtree(patient_folder)
+                        st.success("Patient data cleared!")
+                        st.session_state.current_cycle = 0
+                        st.session_state.show_final_followup = False
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"Error clearing data: {e}")
         
         # Show cycle addition buttons
         next_cycle = existing_cycles + 1
         
         if next_cycle == 1:
             st.markdown("### Ready to add Treatment Cycle 1")
-            if st.button(f"📋 Add Treatment Cycle 1", type="primary", use_container_width=True):
+            if st.button(f"Add Treatment Cycle 1", type="primary", use_container_width=True):
                 st.session_state.current_cycle = 1
                 st.rerun()
         else:
             st.markdown(f"### Ready to add Treatment Cycle {next_cycle}")
             col_a, col_b = st.columns(2)
             with col_a:
-                if st.button(f"📋 Add Treatment Cycle {next_cycle}", type="primary", use_container_width=True):
+                if st.button(f"Add Treatment Cycle {next_cycle}", type="primary", use_container_width=True):
                     st.session_state.current_cycle = next_cycle
                     st.rerun()
             with col_b:
-                if st.button("✅ Complete Treatment", use_container_width=True):
-                    st.session_state.baseline_completed = False
-                    st.session_state.current_patient_id = None
+                if st.button("Final Follow-Up Visit", use_container_width=True):
+                    st.session_state.show_final_followup = True
                     st.session_state.current_cycle = 0
-                    st.success("🎉 Treatment cycles completed! Ready for new patient.")
                     st.rerun()
         
         # Show cycle form if current_cycle is set
         if st.session_state.current_cycle > 0:
-            if st.session_state.current_cycle == 1:
-                cycle_data = render_cycle_1_form(st.session_state.current_patient_id)
-                render_cycle_actions(cycle_data, 1)
-            # TODO: Add cycle 2+ forms here
+            cycle_data = render_cycle_form(st.session_state.current_patient_id, st.session_state.current_cycle)
+            render_cycle_actions(cycle_data, st.session_state.current_cycle)
+    
+    # Show final follow-up form if requested
+    if st.session_state.show_final_followup:
+        final_followup_data = render_final_followup_form(st.session_state.current_patient_id)
+        render_final_followup_actions(final_followup_data)
     
     # Footer
     render_footer()
