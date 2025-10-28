@@ -212,10 +212,13 @@ def validate_form_data(form_data: Dict) -> Optional[str]:
         return "Please select an income source!"
     
     # Check dropdown selections (placeholder check)
-    if form_data.get("district", "").startswith("-- Select"):
+    # Use safe coercion because stored values may be None (which would raise AttributeError on startswith)
+    district_val = form_data.get("district") or ""
+    initial_diagnosis_val = form_data.get("initial_diagnosis") or ""
+    if district_val.startswith("-- Select"):
         return "Please select a district!"
     
-    if form_data.get("initial_diagnosis", "").startswith("-- Select"):
+    if initial_diagnosis_val.startswith("-- Select"):
         return "Please select an initial diagnosis!"
     
     if form_data.get("immunohisto_present") is None:
@@ -228,7 +231,8 @@ def validate_form_data(form_data: Dict) -> Optional[str]:
     if form_data.get("chemo_cycles_prescribed", 0) <= 0:
         return "Please enter the number of chemotherapy cycles prescribed!"
     
-    if form_data.get("regimen_prescribed", "").startswith("-- Select"):
+    regimen_prescribed_val = form_data.get("regimen_prescribed") or ""
+    if regimen_prescribed_val.startswith("-- Select"):
         return "Please select a prescribed regimen!"
     
     if form_data.get("treatment_started") is None:
