@@ -25,3 +25,11 @@ Thumbs.db
 
 # Logs
 *.log
+
+#combined json files
+combined_json
+*.json
+*.csv
+.xlsx
+# Ref files
+ref_files/
