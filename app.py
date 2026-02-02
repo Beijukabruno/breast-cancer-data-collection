@@ -895,6 +895,8 @@ def render_linear_baseline_form(districts: List[str]) -> Dict:
         with col2:
             if st.checkbox("PR-positive (PR+)", key="pr_positive"):
                 immunohisto_results.append("PR-positive (PR+)")
+            if st.checkbox("PR-negative (PR-)", key="pr_negative"):
+                immunohisto_results.append("PR-negative (PR-)")
             if st.checkbox("HR-positive (HR+)", key="hr_positive"):
                 immunohisto_results.append("HR-positive (HR+)")
         
@@ -1166,49 +1168,105 @@ def render_form_actions(form_data: Dict) -> None:
     """Render form submission and action buttons"""
     st.markdown("---")
     
-    col1, col2 = st.columns([3, 1])
+    # Check if treatment was started
+    treatment_started = form_data.get("treatment_started")
     
-    with col1:
-        if st.button("Save Baseline Data", type="primary", use_container_width=True):
-            # Validate form data
-            error_msg = validate_form_data(form_data)
-            
-            if error_msg:
-                st.error(f"{error_msg}")
-            else:
-                # Save data
-                success, result = save_patient_data(form_data, "baseline")
+    if treatment_started == "No":
+        # Patient did not start treatment - show end option
+        st.warning("Patient did not start treatment. Data collection will be completed and saved.")
+        
+        col1, col2 = st.columns([3, 1])
+        
+        with col1:
+            if st.button("Save Baseline & End Data Collection", type="primary", use_container_width=True):
+                # Validate form data
+                error_msg = validate_form_data(form_data)
                 
-                if success:
-                    st.success(f"Baseline data for Patient {form_data['patient_id']} saved successfully!")
-                    st.success(f"File saved to: {result}")
-                    
-                    # Update session state
-                    st.session_state.patient_data = form_data
-                    st.session_state.current_patient_id = form_data['patient_id']
-                    st.session_state.baseline_completed = True
-                    st.session_state.current_cycle = 0
-                    
-                    # Show success metrics
-                    with st.expander("Saved Data Summary", expanded=True):
-                        col_a, col_b = st.columns(2)
-                        with col_a:
-                            st.metric("Patient ID", form_data['patient_id'])
-                            st.metric("Age", form_data['age'])
-                            st.metric("District", form_data['district'] or "Not selected")
-                        with col_b:
-                            st.metric("Education", form_data['education_level'] or "Not selected")
-                            st.metric("Diagnosis", form_data['initial_diagnosis'] or "Not selected")
-                            st.metric("Stage", form_data['disease_stage'] or "Not selected")
-                    
-                    st.rerun()  # Refresh to show cycle options
+                if error_msg:
+                    st.error(f"{error_msg}")
                 else:
-                    st.error(f"Error saving data: {result}")
+                    # Save data
+                    success, result = save_patient_data(form_data, "baseline")
+                    
+                    if success:
+                        st.success(f"Baseline data for Patient {form_data['patient_id']} saved successfully!")
+                        st.success(f"File saved to: {result}")
+                        st.info(f"Patient {form_data['patient_id']} - Treatment did not start. Data collection complete.")
+                        
+                        # Show success metrics
+                        with st.expander("Saved Data Summary", expanded=True):
+                            col_a, col_b = st.columns(2)
+                            with col_a:
+                                st.metric("Patient ID", form_data['patient_id'])
+                                st.metric("Age", form_data['age'])
+                                st.metric("District", form_data['district'] or "Not selected")
+                            with col_b:
+                                st.metric("Education", form_data['education_level'] or "Not selected")
+                                st.metric("Diagnosis", form_data['initial_diagnosis'] or "Not selected")
+                                st.metric("Treatment Status", "Not Started")
+                        
+                        # Reset session state to start new patient
+                        st.session_state.baseline_completed = False
+                        st.session_state.current_patient_id = None
+                        st.session_state.current_cycle = 0
+                        st.session_state.show_final_followup = False
+                        clear_form_fields()
+                        
+                        st.balloons()
+                        st.rerun()
+                    else:
+                        st.error(f"Error saving data: {result}")
+        
+        with col2:
+            if st.button("Clear Form", use_container_width=True):
+                clear_form_fields()
+                st.rerun()
     
-    with col2:
-        if st.button("Clear Form", use_container_width=True):
-            clear_form_fields()
-            st.rerun()
+    else:
+        # Treatment started or not selected yet - show normal continue option
+        col1, col2 = st.columns([3, 1])
+        
+        with col1:
+            if st.button("Save Baseline Data & Continue", type="primary", use_container_width=True):
+                # Validate form data
+                error_msg = validate_form_data(form_data)
+                
+                if error_msg:
+                    st.error(f"{error_msg}")
+                else:
+                    # Save data
+                    success, result = save_patient_data(form_data, "baseline")
+                    
+                    if success:
+                        st.success(f"Baseline data for Patient {form_data['patient_id']} saved successfully!")
+                        st.success(f"File saved to: {result}")
+                        
+                        # Update session state
+                        st.session_state.patient_data = form_data
+                        st.session_state.current_patient_id = form_data['patient_id']
+                        st.session_state.baseline_completed = True
+                        st.session_state.current_cycle = 0
+                        
+                        # Show success metrics
+                        with st.expander("Saved Data Summary", expanded=True):
+                            col_a, col_b = st.columns(2)
+                            with col_a:
+                                st.metric("Patient ID", form_data['patient_id'])
+                                st.metric("Age", form_data['age'])
+                                st.metric("District", form_data['district'] or "Not selected")
+                            with col_b:
+                                st.metric("Education", form_data['education_level'] or "Not selected")
+                                st.metric("Diagnosis", form_data['initial_diagnosis'] or "Not selected")
+                                st.metric("Stage", form_data['disease_stage'] or "Not selected")
+                        
+                        st.rerun()  # Refresh to show cycle options
+                    else:
+                        st.error(f"Error saving data: {result}")
+        
+        with col2:
+            if st.button("Clear Form", use_container_width=True):
+                clear_form_fields()
+                st.rerun()
 
 
 def render_footer() -> None:

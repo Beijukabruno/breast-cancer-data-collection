@@ -48,6 +48,7 @@ Kaliro District
 Kalungu District
 Kamuli District
 Kamwenge District
+Kampala District
 Kanungu District
 Kapchorwa District
 Kapelebyong District
@@ -132,3 +133,4 @@ Tororo District
 Wakiso District
 Yumbe District
 Zombo District
+Refugee
