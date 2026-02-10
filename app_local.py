@@ -155,7 +155,8 @@ def initialize_session_state() -> None:
 def clear_form_fields() -> None:
     """Clear all form input fields"""
     # Clear text inputs
-    for key in ['patient_id', 'income_other', 'immunohisto_other_specify', 'commodities_other', 'treatment_not_started_reason']:
+    for key in ['patient_id', 'income_other', 'immunohisto_other_specify', 'commodities_other', 
+                'treatment_not_started_reason', 'treatment_not_started_other', 'initial_diagnosis_other', 'regimen_other']:
         if key in st.session_state:
             del st.session_state[key]
     
@@ -176,7 +177,7 @@ def clear_form_fields() -> None:
     
     # Clear checkboxes
     checkbox_keys = ['diabetes', 'hypertension', 'hiv', 'none_captured', 'other_comorbidities',
-                    'er_positive', 'er_negative', 'pr_positive', 'hr_positive', 'hr_negative', 
+                    'er_positive', 'er_negative', 'pr_positive', 'pr_negative', 'hr_positive', 'hr_negative', 
                     'her2_positive', 'her2_negative', 'immunohisto_other_check']
     for key in checkbox_keys:
         if key in st.session_state:
